@@ -16,6 +16,7 @@
 
 static int currentFrame = -1;
 static int nextFrame = 0;
+static int block64index = 0;
 
 static uchar *data = scene1_bin;
 
@@ -62,7 +63,18 @@ void interpretPaletteData()
 
 void interpretIndexedMode()
 {
+	static uchar vpx[256], vpy[256];
+
 	std::cout << "Frame in indexed mode\n\n";
+
+	int vertexNum = *data++;
+	std::cout << "Number of vertices: " << vertexNum << "\n\n";
+
+	for (int i = 0; i < vertexNum; ++i) {
+		vpx[i] = *data++;
+		vpy[i] = *data++;
+		std::cout << "Vertex " << i << ": X=" << (int)vpx[i] << " Y=" << (int)vpy[i] << std::endl;
+	}
 }
 
 void interpretNonIndexedMode()
