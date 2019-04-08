@@ -16,9 +16,14 @@
 
 static int currentFrame = -1;
 static int nextFrame = 0;
-static int block64index = 0;
+static uint block64index = 0;
 
 static uchar *data = scene1_bin;
+
+static Point2D vi[256];
+
+bool endOfAllFrames = false;
+
 
 void Script::init(ScreenBuffer *screen)
 {
@@ -28,27 +33,34 @@ static void inputScript(InputBuffer *input)
 {
 	input->quit = (input->keyState(SDLK_ESCAPE) == KEY_JUST_PRESSED);
 
-	if (input->keyState(SDLK_n) == KEY_JUST_PRESSED) {
+	/*if (input->keyState(SDLK_n) == KEY_JUST_PRESSED) {
 		++nextFrame;
-	}
+	}*/
 }
 
-void interpretClearScreen()
+static void interpretClearScreen()
 {
 	std::cout << "Must clear screen\n\n";
 }
 
-void interpretPaletteData()
+static inline ushort flipWordEndianess(ushort value)
+{
+	uchar vl = value >> 8;
+	uchar vr = value & 255;
+	return (vr << 8) | vl;
+}
+
+static void interpretPaletteData()
 {
 	std::cout << "Must switch palette\n";
 
-	ushort bitmask = *((ushort*)data);
+	ushort bitmask = flipWordEndianess(*((ushort*)data));
 	data += 2;
 
 	for (int i = 0; i < 16; ++i) {
 		int palNum = 15 - i;
 		if (bitmask & 1) {
-			ushort color = *((ushort*)data);
+			ushort color = flipWordEndianess(*((ushort*)data));
 			data += 2;
 
 			int r = (color >> 8) & 7;
@@ -61,9 +73,50 @@ void interpretPaletteData()
 	std::cout << std::endl;
 }
 
-void interpretIndexedMode()
+static void interpretDescriptorSpecial(uchar descriptor)
 {
-	static uchar vpx[256], vpy[256];
+	switch (descriptor)
+	{
+	case 0xff:
+	{
+		std::cout << "End of frame\n\n";
+	}
+	break;
+
+	case 0xfe:
+	{
+		std::cout << "End of frame and skip at next 64k block\n\n";
+		++block64index;
+		data = &scene1_bin[block64index << 16];
+	}
+	break;
+
+	case 0xfd:
+	{
+		std::cout << "That's all folks!\n\n\n";
+
+		// Option 1, restart
+		//data = &scene1_bin[0];
+		//block64index = 0;
+
+		// Option 2, quit?
+		endOfAllFrames = true;
+	}
+	break;
+	}
+}
+
+static void interpretDescriptorNormal(uchar descriptor, int &colorIndex, int &polyNumVertices)
+{
+	colorIndex = (int)(descriptor >> 4);
+	polyNumVertices = (int)(descriptor & 15);
+
+	std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex;
+}
+
+static void interpretIndexedMode()
+{
+	uchar descriptor = 0;
 
 	std::cout << "Frame in indexed mode\n\n";
 
@@ -71,18 +124,55 @@ void interpretIndexedMode()
 	std::cout << "Number of vertices: " << vertexNum << "\n\n";
 
 	for (int i = 0; i < vertexNum; ++i) {
-		vpx[i] = *data++;
-		vpy[i] = *data++;
-		std::cout << "Vertex " << i << ": X=" << (int)vpx[i] << " Y=" << (int)vpy[i] << std::endl;
+		vi[i].x = (int)*data++;
+		vi[i].y = (int)*data++;
+		std::cout << "Vertex " << i << ": X=" << vi[i].x << " Y=" << vi[i].y << std::endl;
 	}
+
+	while(true) {
+		descriptor = *data++;
+		if (descriptor >= 0xfd) break;
+
+		{
+			int colorIndex, polyNumVertices;
+			interpretDescriptorNormal(descriptor, colorIndex, polyNumVertices);
+
+			for (int n = 0; n < polyNumVertices; ++n) {
+				int vertexId = *data++;
+				std::cout << " " << vertexId;
+			}
+			std::cout << std::endl;
+		}
+	}
+	interpretDescriptorSpecial(descriptor);
 }
 
-void interpretNonIndexedMode()
+static void interpretNonIndexedMode()
 {
+	uchar descriptor = 0;
+
 	std::cout << "Frame in non-indexed mode\n\n";
+
+	while (true) {
+		descriptor = *data++;
+		if (descriptor >= 0xfd) break;
+
+		{
+			int colorIndex, polyNumVertices;
+			interpretDescriptorNormal(descriptor, colorIndex, polyNumVertices);
+
+			for (int n = 0; n < polyNumVertices; ++n) {
+				int posX = *data++;
+				int posY = *data++;
+				std::cout << "(" << posX << "," << posY << ") ";
+			}
+			std::cout << std::endl;
+		}
+	}
+	interpretDescriptorSpecial(descriptor);
 }
 
-void interpretFlag()
+static void interpretFlag()
 {
 	uchar flags = *data++;
 
@@ -99,7 +189,7 @@ void interpretFlag()
 	}
 }
 
-void decodeFrame()
+static void decodeFrame()
 {
 	interpretFlag();
 }
@@ -115,18 +205,15 @@ static void renderScript(ScreenBuffer *screen)
 		decodeFrame();
 	}
 
-	const uchar *src = &scene1_bin[0];
-	uchar *dst = screen->vram;
-	for (uint i = 0; i < SCENE1_BIN_SIZE; ++i) {
-		*dst++ = *src++;
-	}
+	++nextFrame;
 }
 
 void Script::run(ScreenBuffer *screen, InputBuffer *input)
 {
 	inputScript(input);
-
 	renderScript(screen);
+
+	if (endOfAllFrames) input->quit = true;
 }
 
 void Script::deinit()

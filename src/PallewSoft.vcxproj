@@ -55,7 +55,7 @@
     <ProjectGuid>{395DB8A5-F08D-4066-A632-83EE5E9C4472}</ProjectGuid>
     <RootNamespace>PallewSoft</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
-    <ProjectName>Ideal</ProjectName>
+    <ProjectName>STNICCC_test</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
