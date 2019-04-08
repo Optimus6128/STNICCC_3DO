@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="CoreLib">
+      <UniqueIdentifier>{37602432-6587-425e-b34d-9580b4895212}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CoreLib\Hooks">
+      <UniqueIdentifier>{f8738e42-e30a-4f08-9942-49a94d1ae9aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CoreLib\Modules">
+      <UniqueIdentifier>{3c6321fc-37c9-46c0-9b25-23783eff5cbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Script">
+      <UniqueIdentifier>{4d07a174-bfa3-45c8-ab94-7dba9fd9c15b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CoreLib\Modules\Image">
+      <UniqueIdentifier>{597b2089-fe07-4379-a641-6dd6903bc478}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CoreLib\Modules\Misc">
+      <UniqueIdentifier>{7631f6a3-b22a-41ce-9c9e-6ee0914fc459}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CoreLib\Modules\Drawing">
+      <UniqueIdentifier>{9c2bc937-4154-4b54-b049-c293611db573}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{729c935d-69aa-4a6e-b56b-d1dc474bccb4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Script\ScriptMain.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Hooks\CoreSDL2.cpp">
+      <Filter>CoreLib\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Image\Image.cpp">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Image\ImageLoader.cpp">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Misc\FileUtils.cpp">
+      <Filter>CoreLib\Modules\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Image\Fonts.cpp">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Drawing\Drawing.cpp">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Drawing\DrawingCel.cpp">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Drawing\DrawingLine.cpp">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreLib\Modules\Drawing\DrawingPolygon.cpp">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="Data\scene1.cpp">
+      <Filter>Data</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.h" />
+    <ClInclude Include="CoreLib\Core.h">
+      <Filter>CoreLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\InputBuffer.h">
+      <Filter>CoreLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\ScreenBuffer.h">
+      <Filter>CoreLib</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\ScriptMain.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Hooks\CoreSDL2.h">
+      <Filter>CoreLib\Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Image\Image.h">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Image\ImageLoader.h">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Misc\FileUtils.h">
+      <Filter>CoreLib\Modules\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Typedefs.h">
+      <Filter>CoreLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Image\Fonts.h">
+      <Filter>CoreLib\Modules\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Drawing\Drawing.h">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Drawing\DrawingCel.h">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Drawing\DrawingLine.h">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Drawing\DrawingPolygon.h">
+      <Filter>CoreLib\Modules\Drawing</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreLib\Modules\Misc\MathUtil.h">
+      <Filter>CoreLib\Modules\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Data\scene1.h">
+      <Filter>Data</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,168 @@
+# depslib dependency file v1.0
+1479765818 source:c:\code\frameworks\pallewsoft\coresdl.cpp
+	"coreSDL.h"
+
+1479765793 c:\code\frameworks\pallewsoft\coresdl.h
+	<SDL/SDL.h>
+	"core.h"
+
+1479765781 c:\code\frameworks\pallewsoft\core.h
+
+1479766056 source:c:\code\frameworks\pallewsoft\main.cpp
+	<stdio.h>
+	<conio.h>
+	"main.h"
+	"core.h"
+	"coreSDL.h"
+
+1479765294 c:\code\frameworks\pallewsoft\main.h
+
+1480448641 source:c:\code\frameworks\pallewsoft\src\coresdl.cpp
+	"CoreSDL.h"
+
+1479849883 c:\code\frameworks\pallewsoft\src\coresdl.h
+	<SDL/SDL.h>
+	"Core.h"
+
+1480372941 c:\code\frameworks\pallewsoft\src\core.h
+	"ScreenBuffer.h"
+	"InputBuffer.h"
+
+1480372969 source:c:\code\frameworks\pallewsoft\src\coretools.cpp
+	<stdio.h>
+	"CoreTools.h"
+	"ScreenBuffer.h"
+
+1479853964 c:\code\frameworks\pallewsoft\src\coretools.h
+	"Core.h"
+
+1481057976 source:c:\code\frameworks\pallewsoft\src\main.cpp
+	<stdio.h>
+	<conio.h>
+	<math.h>
+	<windows.h>
+	"main.h"
+	"Core.h"
+	"Hooks\CoreSDL.h"
+	"Misc\TinyFPS.h"
+	"ScreenBuffer.h"
+	"InputBuffer.h"
+	"Demo\Part.h"
+
+1480982584 c:\code\frameworks\pallewsoft\src\main.h
+
+1480372857 c:\code\frameworks\pallewsoft\src\screenbuffer.h
+
+1480372920 c:\code\frameworks\pallewsoft\src\inputbuffer.h
+
+1480550768 c:\code\frameworks\pallewsoft\src\part.h
+	"CoreLib\Core.h"
+
+1480550763 c:\code\frameworks\pallewsoft\src\partxor.h
+	"Part.h"
+	"CoreLib\ScreenBuffer.h"
+
+1480550731 c:\code\frameworks\pallewsoft\src\partplasma.h
+	"Part.h"
+	"CoreLib\ScreenBuffer.h"
+
+1480550796 source:c:\code\frameworks\pallewsoft\src\partplasma.cpp
+	<math.h>
+	"PartPlasma.h"
+	"CoreLib\ScreenBuffer.h"
+
+1480550790 source:c:\code\frameworks\pallewsoft\src\partxor.cpp
+	<math.h>
+	"PartXor.h"
+	"CoreLib\ScreenBuffer.h"
+
+1480448641 source:c:\code\frameworks\pallewsoft\src\corelib\hooks\sdl\coresdl.cpp
+	"CoreSDL.h"
+
+1480550839 c:\code\frameworks\pallewsoft\src\corelib\hooks\sdl\coresdl.h
+	<SDL/SDL.h>
+	"..\..\Core.h"
+
+1480884232 c:\code\frameworks\pallewsoft\src\corelib\core.h
+	"ScreenBuffer.h"
+	"InputBuffer.h"
+
+1480372857 c:\code\frameworks\pallewsoft\src\corelib\screenbuffer.h
+
+1480782856 c:\code\frameworks\pallewsoft\src\corelib\inputbuffer.h
+
+1480550859 source:c:\code\frameworks\pallewsoft\src\corelib\misc\coretools.cpp
+	<stdio.h>
+	"CoreTools.h"
+	"..\ScreenBuffer.h"
+
+1480550848 c:\code\frameworks\pallewsoft\src\corelib\misc\coretools.h
+	"..\Core.h"
+
+1481053824 source:c:\code\frameworks\pallewsoft\src\corelib\hooks\coresdl.cpp
+	<thread>
+	"CoreSDL.h"
+	"InputBuffer.h"
+
+1480630949 c:\code\frameworks\pallewsoft\src\corelib\hooks\coresdl.h
+	<SDL/SDL.h>
+	"Core.h"
+
+1480896776 source:c:\code\frameworks\pallewsoft\src\corelib\misc\tinyfps.cpp
+	<stdio.h>
+	"Misc\TinyFPS.h"
+	"ScreenBuffer.h"
+
+1480630761 c:\code\frameworks\pallewsoft\src\corelib\misc\tinyfps.h
+	"ScreenBuffer.h"
+
+1481055601 source:c:\code\frameworks\pallewsoft\src\demo\partplasma.cpp
+	<math.h>
+	<thread>
+	<atomic>
+	"PartPlasma.h"
+	"ScreenBuffer.h"
+	"..\main.h"
+
+1481055451 c:\code\frameworks\pallewsoft\src\demo\partplasma.h
+	"Part.h"
+	"ScreenBuffer.h"
+
+1481056068 c:\code\frameworks\pallewsoft\src\demo\part.h
+	"Core.h"
+
+1481055652 source:c:\code\frameworks\pallewsoft\src\demo\partxor.cpp
+	<math.h>
+	"PartXor.h"
+	"ScreenBuffer.h"
+
+1481055644 c:\code\frameworks\pallewsoft\src\demo\partxor.h
+	"Part.h"
+	"ScreenBuffer.h"
+
+1481056068 source:c:\code\frameworks\pallewsoft\src\demo\part.cpp
+	"Part.h"
+	"PartXor.h"
+	"PartPlasma.h"
+	"PartBlobs.h"
+	"PartMandelbrot.h"
+	"ScreenBuffer.h"
+
+1481055434 c:\code\frameworks\pallewsoft\src\demo\partblobs.h
+	"Part.h"
+	"ScreenBuffer.h"
+
+1481055440 source:c:\code\frameworks\pallewsoft\src\demo\partblobs.cpp
+	<stdlib.h>
+	"PartBlobs.h"
+	"ScreenBuffer.h"
+
+1481058110 c:\code\frameworks\pallewsoft\src\demo\partmandelbrot.h
+	"Part.h"
+	"ScreenBuffer.h"
+
+1481057990 source:c:\code\frameworks\pallewsoft\src\demo\partmandelbrot.cpp
+	<math.h>
+	"PartMandelbrot.h"
+	"ScreenBuffer.h"
+
