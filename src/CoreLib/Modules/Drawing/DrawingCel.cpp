@@ -285,6 +285,7 @@ void drawFlatQuadScaled(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint
 	zp3.x = p3.x << 2; zp3.y = p3.y << 2;
 
 	drawFlatQuad(zp0, zp1, zp2, zp3, color, screen);
+	drawFlatQuad(zp3, zp2, zp1, zp0, color, screen);	// both clockwiseness hack
 }
 
 static void drawCelFilled(Cel &cel, ScreenBuffer *screen)

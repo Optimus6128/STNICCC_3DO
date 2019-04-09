@@ -7,7 +7,7 @@
 
 struct QuadStore
 {
-	Point2D *p0, *p1, *p2, *p3;
+	Point2D p0, p1, p2, p3;
 	ushort c;
 };
 

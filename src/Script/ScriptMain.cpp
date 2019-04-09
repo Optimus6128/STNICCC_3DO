@@ -24,7 +24,8 @@ static ushort pal[16];
 static Point2D pt[16];
 
 static QuadStore quads[1024];
-static QuadStore *quadPtr = NULL;
+static QuadStore *quadPtr;
+static int numQuads = 0;
 
 
 static bool mustClearScreen = false;
@@ -53,30 +54,32 @@ static void addPolygon(Point2D *pt, int numVertices, int paletteIndex)
 
 	while(pStartIndex < maxIndex)
 	{
-		quadPtr->p0 = &pt[pBaseIndex];
-		quadPtr->p1 = &pt[pStartIndex];
-		quadPtr->p2 = &pt[pStartIndex+1];
+		quadPtr->p0.x = pt[pBaseIndex].x;		quadPtr->p0.y = pt[pBaseIndex].y;
+		quadPtr->p1.x = pt[pStartIndex].x;		quadPtr->p1.y = pt[pStartIndex].y;
+		quadPtr->p2.x = pt[pStartIndex+1].x;	quadPtr->p2.y = pt[pStartIndex + 1].y;
 
 		pStartIndex += 2;
 		if (pStartIndex > maxIndex) pStartIndex = maxIndex;
-		quadPtr->p3 = &pt[pStartIndex];
+		quadPtr->p3.x = pt[pStartIndex].x;		quadPtr->p3.y = pt[pStartIndex].y;
+
 		quadPtr->c = color;
+
 		++quadPtr;
+		++numQuads;
 	}
 }
 
 static void renderPolygons(ScreenBuffer *screen)
 {
-	quadPtr->p0 = NULL;
-	quadPtr = &quads[0];
-
-	while (quadPtr->p0 != NULL) {
-		drawFlatQuadScaled(*quadPtr->p0, *quadPtr->p1, *quadPtr->p2, *quadPtr->p3, color32from15(quadPtr->c), screen);
-		++quadPtr;
+	for (int i=0; i<numQuads; ++i) {
+		Point2D *p0 = &quads[i].p0;
+		Point2D *p1 = &quads[i].p1;
+		Point2D *p2 = &quads[i].p2;
+		Point2D *p3 = &quads[i].p3;
+		drawFlatQuadScaled(*p0, *p1, *p2, *p3, color32from15(quads[i].c), screen);
+		//printf("Quad: %d     P0: %d,%d   P1: %d,%d   P2: %d,%d   P3:%d,%d\n", i, p0->x, p0->y, p1->x, p1->y, p2->x, p2->y, p3->x, p3->y);
 	}
 }
-
-//	drawFlatQuad(p0, p1, p2, p3, color32from15(color), )
 
 static void inputScript(InputBuffer *input)
 {
@@ -225,6 +228,7 @@ static void decodeFrame()
 	uchar flags = *data++;
 
 	mustClearScreen = false;
+	numQuads = 0;
 	quadPtr = &quads[0];
 
 	if (flags & 1) {
@@ -249,11 +253,11 @@ static void renderScript(ScreenBuffer *screen)
 		std::cout << currentFrame << std::endl;
 		decodeFrame();
 		++nextFrame;
+
+		if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
+
+		renderPolygons(screen);
 	}
-
-	if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
-
-	renderPolygons(screen);
 }
 
 void Script::run(ScreenBuffer *screen, InputBuffer *input)

@@ -22,6 +22,10 @@
 ScreenBuffer *screen;
 InputBuffer *input;
 
+static int timeTicks = 0;
+static bool lockSpeed = false;
+static int lockSpeedMs = 16;
+
 int main(int argc, char* argv[])
 {
 	std::vector<std::string> arguments;
@@ -41,10 +45,24 @@ int main(int argc, char* argv[])
 
 
 	Script::init(screen);
+
+	uint nframe = 0;
 	do {
+		timeTicks = core->ticks();
+
 		core->input();
 		Script::run(screen, input);
 		core->render();
+
+		if (input->keyboard[SDLK_v] == KEY_JUST_PRESSED)
+			lockSpeed = !lockSpeed;
+
+		// Trick to have 60fps (for now, will switch to chrono highres timer in the future)
+		const int lockSpeedMsFinal = lockSpeedMs + (nframe & 1);
+
+		do {} while (lockSpeed & (core->ticks() - timeTicks < lockSpeedMsFinal));
+
+		++nframe;
 	} while (!input->quit);
 
 	Script::deinit();
