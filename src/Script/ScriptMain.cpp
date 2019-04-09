@@ -20,7 +20,8 @@ static uint block64index = 0;
 
 static uchar *data = scene1_bin;
 
-static Point2D vi[256];
+static ushort pal[16];
+static Point2D pt[16];
 
 bool endOfAllFrames = false;
 
@@ -40,7 +41,7 @@ static void inputScript(InputBuffer *input)
 
 static void interpretClearScreen()
 {
-	std::cout << "Must clear screen\n\n";
+	//std::cout << "Must clear screen\n\n";
 }
 
 static inline ushort flipWordEndianess(ushort value)
@@ -52,7 +53,7 @@ static inline ushort flipWordEndianess(ushort value)
 
 static void interpretPaletteData()
 {
-	std::cout << "Must switch palette\n";
+	//std::cout << "Must switch palette\n";
 
 	ushort bitmask = flipWordEndianess(*((ushort*)data));
 	data += 2;
@@ -63,14 +64,15 @@ static void interpretPaletteData()
 			ushort color = flipWordEndianess(*((ushort*)data));
 			data += 2;
 
-			int r = (color >> 8) & 7;
-			int g = (color >> 4) & 7;
-			int b = color & 7;
-			std::cout << "\tSet color " << palNum << " with values " << "(R: " << r << " , G: " << g << " , B: " << b << ")\n";
+			int r = ((color >> 8) & 7) << 1;
+			int g = ((color >> 4) & 7) << 1;
+			int b = (color & 7) << 1;
+			//std::cout << "\tSet color " << palNum << " with values " << "(R: " << r << " , G: " << g << " , B: " << b << ")\n";
+			pal[palNum] = (r << 10) | (g << 5) | b;
 		}
 		bitmask >>= 1;
 	}
-	std::cout << std::endl;
+	//std::cout << std::endl;
 }
 
 static void interpretDescriptorSpecial(uchar descriptor)
@@ -79,13 +81,13 @@ static void interpretDescriptorSpecial(uchar descriptor)
 	{
 	case 0xff:
 	{
-		std::cout << "End of frame\n\n";
+		//std::cout << "End of frame\n\n";
 	}
 	break;
 
 	case 0xfe:
 	{
-		std::cout << "End of frame and skip at next 64k block\n\n";
+		//std::cout << "End of frame and skip at next 64k block\n\n";
 		++block64index;
 		data = &scene1_bin[block64index << 16];
 	}
@@ -93,56 +95,66 @@ static void interpretDescriptorSpecial(uchar descriptor)
 
 	case 0xfd:
 	{
-		std::cout << "That's all folks!\n\n\n";
+		//std::cout << "That's all folks!\n\n\n";
 
 		// Option 1, restart
-		//data = &scene1_bin[0];
-		//block64index = 0;
+		data = &scene1_bin[0];
+		block64index = 0;
 
 		// Option 2, quit?
-		endOfAllFrames = true;
+		//endOfAllFrames = true;
 	}
 	break;
 	}
 }
 
-static void interpretDescriptorNormal(uchar descriptor, int &colorIndex, int &polyNumVertices)
+static void interpretDescriptorNormal(uchar descriptor, int &polyNumVertices, int &colorIndex)
 {
 	colorIndex = (int)(descriptor >> 4);
 	polyNumVertices = (int)(descriptor & 15);
 
-	std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex;
+	//std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex;
+}
+
+static void renderPolygon(Point2D *pt, int numVertices, int paletteIndex)
+{
+	ushort color = pal[paletteIndex];
+
+
 }
 
 static void interpretIndexedMode()
 {
-	uchar descriptor = 0;
+	static Point2D vi[256];
 
-	std::cout << "Frame in indexed mode\n\n";
+	uchar descriptor = 0;
+	int polyPaletteIndex, polyNumVertices;
+
+	//std::cout << "Frame in indexed mode\n\n";
 
 	int vertexNum = *data++;
-	std::cout << "Number of vertices: " << vertexNum << "\n\n";
+	//std::cout << "Number of vertices: " << vertexNum << "\n\n";
 
 	for (int i = 0; i < vertexNum; ++i) {
 		vi[i].x = (int)*data++;
 		vi[i].y = (int)*data++;
-		std::cout << "Vertex " << i << ": X=" << vi[i].x << " Y=" << vi[i].y << std::endl;
+		//std::cout << "Vertex " << i << ": X=" << vi[i].x << " Y=" << vi[i].y << std::endl;
 	}
 
 	while(true) {
 		descriptor = *data++;
 		if (descriptor >= 0xfd) break;
 
-		{
-			int colorIndex, polyNumVertices;
-			interpretDescriptorNormal(descriptor, colorIndex, polyNumVertices);
+		interpretDescriptorNormal(descriptor, polyNumVertices, polyPaletteIndex);
 
-			for (int n = 0; n < polyNumVertices; ++n) {
-				int vertexId = *data++;
-				std::cout << " " << vertexId;
-			}
-			std::cout << std::endl;
+		for (int n = 0; n < polyNumVertices; ++n) {
+			int vertexId = *data++;
+			//std::cout << " " << vertexId;
+			pt[n].x = vi[vertexId].x;
+			pt[n].y = vi[vertexId].y;
 		}
+		//std::cout << std::endl;
+		renderPolygon(pt, polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
 }
@@ -150,24 +162,23 @@ static void interpretIndexedMode()
 static void interpretNonIndexedMode()
 {
 	uchar descriptor = 0;
+	int polyPaletteIndex, polyNumVertices;
 
-	std::cout << "Frame in non-indexed mode\n\n";
+	//std::cout << "Frame in non-indexed mode\n\n";
 
 	while (true) {
 		descriptor = *data++;
 		if (descriptor >= 0xfd) break;
 
-		{
-			int colorIndex, polyNumVertices;
-			interpretDescriptorNormal(descriptor, colorIndex, polyNumVertices);
+		interpretDescriptorNormal(descriptor, polyNumVertices, polyPaletteIndex);
 
-			for (int n = 0; n < polyNumVertices; ++n) {
-				int posX = *data++;
-				int posY = *data++;
-				std::cout << "(" << posX << "," << posY << ") ";
-			}
-			std::cout << std::endl;
+		for (int n = 0; n < polyNumVertices; ++n) {
+			pt[n].x = *data++;
+			pt[n].y = *data++;
+			//std::cout << "(" << pt[n].x << "," << pt[n].y << ") ";
 		}
+		//std::cout << std::endl;
+		renderPolygon(pt, polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
 }
@@ -201,7 +212,7 @@ static void renderScript(ScreenBuffer *screen)
 
 	if (nextFrame > currentFrame) {
 		currentFrame = nextFrame;
-		std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
+		//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
 		decodeFrame();
 	}
 
