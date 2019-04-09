@@ -11,7 +11,7 @@
 #include "ScriptMain.h"
 #include "..\Data\scene1.h"
 
-#include "Modules/Drawing/DrawingPolygon.h"
+#include "Modules/Drawing/DrawingCel.h"
 
 
 static int currentFrame = -1;
@@ -23,28 +23,71 @@ static uchar *data = scene1_bin;
 static ushort pal[16];
 static Point2D pt[16];
 
-bool endOfAllFrames = false;
+static QuadStore quads[1024];
+static QuadStore *quadPtr = NULL;
+
+
+static bool mustClearScreen = false;
+static bool endOfAllFrames = false;
 
 
 void Script::init(ScreenBuffer *screen)
 {
 }
 
+static uint color32from15(ushort color)
+{
+	int r = ((color >> 10) & 31) << 3;
+	int g = ((color >> 5) & 31) << 3;
+	int b = (color & 31) << 3;
+	return (r << 16) | (g << 8) | b;
+}
+
+static void addPolygon(Point2D *pt, int numVertices, int paletteIndex)
+{
+	ushort color = pal[paletteIndex];
+
+	int pBaseIndex = 0;
+	int pStartIndex = 1;
+	const int maxIndex = numVertices - 1;
+
+	while(pStartIndex < maxIndex)
+	{
+		quadPtr->p0 = &pt[pBaseIndex];
+		quadPtr->p1 = &pt[pStartIndex];
+		quadPtr->p2 = &pt[pStartIndex+1];
+
+		pStartIndex += 2;
+		if (pStartIndex > maxIndex) pStartIndex = maxIndex;
+		quadPtr->p3 = &pt[pStartIndex];
+		quadPtr->c = color;
+		++quadPtr;
+	}
+}
+
+static void renderPolygons(ScreenBuffer *screen)
+{
+	quadPtr->p0 = NULL;
+	quadPtr = &quads[0];
+
+	while (quadPtr->p0 != NULL) {
+		drawFlatQuadScaled(*quadPtr->p0, *quadPtr->p1, *quadPtr->p2, *quadPtr->p3, color32from15(quadPtr->c), screen);
+		++quadPtr;
+	}
+}
+
+//	drawFlatQuad(p0, p1, p2, p3, color32from15(color), )
+
 static void inputScript(InputBuffer *input)
 {
 	input->quit = (input->keyState(SDLK_ESCAPE) == KEY_JUST_PRESSED);
 
-	/*if (input->keyState(SDLK_n) == KEY_JUST_PRESSED) {
+	if (input->keyState(SDLK_n) == KEY_JUST_PRESSED) {
 		++nextFrame;
-	}*/
+	}
 }
 
-static void interpretClearScreen()
-{
-	//std::cout << "Must clear screen\n\n";
-}
-
-static inline ushort flipWordEndianess(ushort value)
+static ushort flipWordEndianess(ushort value)
 {
 	uchar vl = value >> 8;
 	uchar vr = value & 255;
@@ -100,6 +143,7 @@ static void interpretDescriptorSpecial(uchar descriptor)
 		// Option 1, restart
 		data = &scene1_bin[0];
 		block64index = 0;
+		currentFrame = 0;
 
 		// Option 2, quit?
 		//endOfAllFrames = true;
@@ -114,13 +158,6 @@ static void interpretDescriptorNormal(uchar descriptor, int &polyNumVertices, in
 	polyNumVertices = (int)(descriptor & 15);
 
 	//std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex;
-}
-
-static void renderPolygon(Point2D *pt, int numVertices, int paletteIndex)
-{
-	ushort color = pal[paletteIndex];
-
-
 }
 
 static void interpretIndexedMode()
@@ -154,7 +191,7 @@ static void interpretIndexedMode()
 			pt[n].y = vi[vertexId].y;
 		}
 		//std::cout << std::endl;
-		renderPolygon(pt, polyNumVertices, polyPaletteIndex);
+		addPolygon(pt, polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
 }
@@ -178,45 +215,45 @@ static void interpretNonIndexedMode()
 			//std::cout << "(" << pt[n].x << "," << pt[n].y << ") ";
 		}
 		//std::cout << std::endl;
-		renderPolygon(pt, polyNumVertices, polyPaletteIndex);
+		addPolygon(pt, polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
 }
 
-static void interpretFlag()
+static void decodeFrame()
 {
 	uchar flags = *data++;
 
+	mustClearScreen = false;
+	quadPtr = &quads[0];
+
 	if (flags & 1) {
-		interpretClearScreen();
+		mustClearScreen = true;
 	}
 	if (flags & 2) {
 		interpretPaletteData();
 	}
 	if (flags & 4) {
 		interpretIndexedMode();
-	} else {
+	}
+	else {
 		interpretNonIndexedMode();
 	}
 }
 
-static void decodeFrame()
-{
-	interpretFlag();
-}
-
 static void renderScript(ScreenBuffer *screen)
 {
-	memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
-
-
 	if (nextFrame > currentFrame) {
 		currentFrame = nextFrame;
 		//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
+		std::cout << currentFrame << std::endl;
 		decodeFrame();
+		++nextFrame;
 	}
 
-	++nextFrame;
+	if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
+
+	renderPolygons(screen);
 }
 
 void Script::run(ScreenBuffer *screen, InputBuffer *input)

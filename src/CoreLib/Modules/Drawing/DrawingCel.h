@@ -72,4 +72,7 @@ void drawCel(Cel &cel, ScreenBuffer *screen);
 void setBigPointSize(int size);
 void mapQuadToCel(Quad &q, Cel &cel);
 
+void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen);
+void drawFlatQuadScaled(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen);
+
 #endif

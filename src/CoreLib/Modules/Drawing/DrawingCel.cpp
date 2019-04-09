@@ -222,7 +222,7 @@ static inline void prepareEdgeListFlat(Point2D *p0, Point2D *p1, ScreenBuffer *s
 	} while (yp++ != y1);
 }
 
-static void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen)
+void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen)
 {
 	const int x0 = p0.x; const int y0 = p0.y;
 	const int x1 = p1.x; const int y1 = p1.y;
@@ -274,6 +274,17 @@ static void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uin
 		}
 		dst += scrWidth;
 	}
+}
+
+void drawFlatQuadScaled(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen)
+{
+	Point2D zp0, zp1, zp2, zp3;
+	zp0.x = p0.x << 2; zp0.y = p0.y << 2;
+	zp1.x = p1.x << 2; zp1.y = p1.y << 2;
+	zp2.x = p2.x << 2; zp2.y = p2.y << 2;
+	zp3.x = p3.x << 2; zp3.y = p3.y << 2;
+
+	drawFlatQuad(zp0, zp1, zp2, zp3, color, screen);
 }
 
 static void drawCelFilled(Cel &cel, ScreenBuffer *screen)
