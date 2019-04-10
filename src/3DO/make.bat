@@ -1,0 +1,3 @@
+cd demo
+dmake
+pause
