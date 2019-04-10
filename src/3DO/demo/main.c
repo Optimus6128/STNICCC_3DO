@@ -4,6 +4,7 @@
 #include "system_graphics.h"
 
 #include "tools.h"
+#include "ScriptMain.h"
 
 
 static bool PressedA = false;
@@ -57,6 +58,8 @@ void initStuff()
 void script()
 {
     if (PressedAonce) vsync = !vsync;
+
+    runAnimationScript();
 }
 
 int32 mainLoop()

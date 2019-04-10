@@ -2,7 +2,7 @@
 #define TOOLS_H
 
 #define TEXT_SPACE_WIDTH 40
-#define TEXT_SPACE_HEIGHT 8
+#define TEXT_SPACE_HEIGHT 24
 #define TEXT_SPACE_SIZE (TEXT_SPACE_WIDTH * TEXT_SPACE_HEIGHT)
 
 extern int nframe;

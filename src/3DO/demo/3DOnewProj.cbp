@@ -20,6 +20,10 @@
 				<Option compiler="null" />
 			</Target>
 		</Build>
+		<Unit filename="ScriptMain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ScriptMain.h" />
 		<Unit filename="bitfonts.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -28,6 +32,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="main.h" />
+		<Unit filename="scene1.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="scene1.h" />
 		<Unit filename="system_graphics.c">
 			<Option compilerVar="CC" />
 		</Unit>
