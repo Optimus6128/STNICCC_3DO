@@ -23,7 +23,7 @@ ScreenBuffer *screen;
 InputBuffer *input;
 
 static int timeTicks = 0;
-static bool lockSpeed = false;
+static bool lockSpeed = true;
 static int lockSpeedMs = 16;
 
 int main(int argc, char* argv[])
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 			lockSpeed = !lockSpeed;
 
 		// Trick to have 60fps (for now, will switch to chrono highres timer in the future)
-		const int lockSpeedMsFinal = lockSpeedMs + (nframe & 1);
+		const int lockSpeedMsFinal = 40;// lockSpeedMs + (nframe & 1);
 
 		do {} while (lockSpeed & (core->ticks() - timeTicks < lockSpeedMsFinal));
 

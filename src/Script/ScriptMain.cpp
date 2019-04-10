@@ -44,6 +44,32 @@ static uint color32from15(ushort color)
 	return (r << 16) | (g << 8) | b;
 }
 
+static bool isPolygonConvex(Point2D *pt, int numVertices)
+{
+	int zcross0;
+
+	for (int i = 0; i < numVertices; ++i) {
+		const int i0 = i;
+		const int i1 = (i + 1) % numVertices;
+		const int i2 = (i + 2) % numVertices;
+
+		vec2i v0;	v0.x = pt[i1].x - pt[i0].x;  v0.y = pt[i1].y - pt[i0].y;
+		vec2i v1;	v1.x = pt[i2].x - pt[i1].x;  v1.y = pt[i2].y - pt[i1].y;
+
+		int zcross = v0.x * v1.y - v0.y * v1.x;
+		if (i == 0) {
+			zcross0 = zcross;
+		} else {
+			zcross *= zcross0;
+			if (zcross < 0) {
+				std::cout << "GOTCHA!\n";
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 static void addPolygon(Point2D *pt, int numVertices, int paletteIndex)
 {
 	ushort color = pal[paletteIndex];
@@ -51,6 +77,8 @@ static void addPolygon(Point2D *pt, int numVertices, int paletteIndex)
 	int pBaseIndex = 0;
 	int pStartIndex = 1;
 	const int maxIndex = numVertices - 1;
+
+	//if (!isPolygonConvex(pt, numVertices)) color = 31 << 10;
 
 	while(pStartIndex < maxIndex)
 	{

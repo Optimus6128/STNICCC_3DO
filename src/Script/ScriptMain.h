@@ -11,6 +11,11 @@ struct QuadStore
 	ushort c;
 };
 
+struct vec2i
+{
+	int x, y;
+};
+
 class Script
 {
 public:
