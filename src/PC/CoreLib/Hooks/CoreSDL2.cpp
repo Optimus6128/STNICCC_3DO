@@ -24,7 +24,7 @@ bool CoreSDL2::init(const InitSettings& settings)
 		//windowMode = SDL_WINDOW_FULLSCREEN;
 	}
 
-	m_pWindow = SDL_CreateWindow("Ideal", settings.screenWidth / 4, settings.screenHeight / 4, settings.screenWidth, settings.screenHeight, windowMode);
+	m_pWindow = SDL_CreateWindow("STNICCC test", settings.screenWidth / 4, settings.screenHeight / 4, settings.screenWidth, settings.screenHeight, windowMode);
 	if (!m_pWindow)
 		return false;
 

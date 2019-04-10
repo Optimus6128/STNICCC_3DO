@@ -174,7 +174,8 @@ static void interpretDescriptorSpecial(uchar descriptor)
 		// Option 1, restart
 		data = &scene1_bin[0];
 		block64index = 0;
-		currentFrame = 0;
+		currentFrame = -1;
+		nextFrame = 0;
 
 		// Option 2, quit?
 		//endOfAllFrames = true;
