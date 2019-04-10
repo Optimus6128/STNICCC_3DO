@@ -1,4 +1,9 @@
+syntax: glob
 .vs
 Win32
 x64
-.exe
+LaunchMe
+*.db
+*.iso
+*.o
+*.exe
