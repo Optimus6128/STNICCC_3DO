@@ -138,9 +138,9 @@ static void interpretPaletteData()
 			ushort color = flipWordEndianess(*((ushort*)data));
 			data += 2;
 
-			int r = ((color >> 8) & 7) << 1;
-			int g = ((color >> 4) & 7) << 1;
-			int b = (color & 7) << 1;
+			int r = ((color >> 8) & 7) << 2;
+			int g = ((color >> 4) & 7) << 2;
+			int b = (color & 7) << 2;
 			//std::cout << "\tSet color " << palNum << " with values " << "(R: " << r << " , G: " << g << " , B: " << b << ")\n";
 			pal[palNum] = (r << 10) | (g << 5) | b;
 		}
