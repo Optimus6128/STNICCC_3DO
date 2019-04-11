@@ -120,6 +120,7 @@ static void inputScript(InputBuffer *input)
 
 static ushort flipWordEndianess(ushort value)
 {
+	std::cout << value << std::endl;
 	uchar vl = value >> 8;
 	uchar vr = value & 255;
 	return (vr << 8) | vl;
@@ -129,14 +130,26 @@ static void interpretPaletteData()
 {
 	//std::cout << "Must switch palette\n";
 
-	ushort bitmask = flipWordEndianess(*((ushort*)data));
-	data += 2;
+	uchar bitmaskH = *data++;
+	uchar bitmaskL = *data++;
+
+	//int bitmask = (bitmaskL << 8) | bitmaskH;
+	int bitmask = (bitmaskH << 8) | bitmaskL;
+
+	//ushort bitmask = flipWordEndianess(*((ushort*)data));
+	//data += 2;
+
+	std::cout << bitmask << std::endl;
 
 	for (int i = 0; i < 16; ++i) {
 		int palNum = 15 - i;
 		if (bitmask & 1) {
-			ushort color = flipWordEndianess(*((ushort*)data));
-			data += 2;
+			//ushort color = flipWordEndianess(*((ushort*)data));
+			//data += 2;
+			uchar colorH = *data++;
+			uchar colorL = *data++;
+			//int color = (colorL << 8) | colorH;
+			int color = (colorH << 8) | colorL;
 
 			int r = ((color >> 8) & 7) << 2;
 			int g = ((color >> 4) & 7) << 2;
@@ -276,16 +289,18 @@ static void decodeFrame()
 
 static void renderScript(ScreenBuffer *screen)
 {
-	if (nextFrame > currentFrame) {
-		currentFrame = nextFrame;
-		//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
-		std::cout << currentFrame << std::endl;
-		decodeFrame();
-		++nextFrame;
+	if (nextFrame < 1) {
+		if (nextFrame > currentFrame) {
+			currentFrame = nextFrame;
+			//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
+			std::cout << currentFrame << std::endl;
+			decodeFrame();
+			++nextFrame;
 
-		if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
+			if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
 
-		renderPolygons(screen);
+			renderPolygons(screen);
+		}
 	}
 }
 

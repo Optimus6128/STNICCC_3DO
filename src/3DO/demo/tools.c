@@ -110,6 +110,11 @@ void SetQuadFromPosAndSize(Point *aQuad, int32 xPos, int32 yPos, int32 width, in
 	aQuad[2].pt_Y = aQuad[3].pt_Y = yPos + height;
 }
 
+void clearTextSpace()
+{
+    memset(textSpaceBuffer, 0, TEXT_SPACE_SIZE);
+}
+
 void renderTextSpace()
 {
     SetQuadFromPosAndSize(textSpaceQuad, 0, 0, TEXT_SPACE_WIDTH, TEXT_SPACE_HEIGHT);

@@ -13,5 +13,6 @@ typedef struct QuadStore
 }QuadStore;
 
 void runAnimationScript(void);
+void initCCBpolys(void);
 
 #endif

@@ -53,6 +53,8 @@ void initStuff()
 
 	initFonts();
 	initTimer();
+
+	initCCBpolys();
 }
 
 void script()
@@ -74,6 +76,8 @@ int32 mainLoop()
 		renderTextSpace();
 
 		displayScreen();
+
+		clearTextSpace();
 
 		++nframe;
 	}

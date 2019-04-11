@@ -1,7 +1,7 @@
 #ifndef SCENE1_H
 #define SCENE1_H
 
-#include "Typedefs.h"
+#include "types.h"
 
 #define SCENE1_BIN_SIZE 639976
 
