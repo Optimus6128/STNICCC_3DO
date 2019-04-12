@@ -39,6 +39,8 @@ void initGraphics(void);
 void displayScreen(void);
 void drawCels(CCB *cels);
 
+ushort *getVideoramAddress(void);
+
 extern bool vsync;
 
 #endif

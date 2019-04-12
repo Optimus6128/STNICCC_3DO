@@ -4,33 +4,130 @@
 #include "system_graphics.h"
 #include "tools.h"
 
+#define MAX_POLYS 256
+#define ANIM_WIDTH 256
+#define ANIM_HEIGHT 200
 
 static int nextFrame = 0;
 static unsigned int block64index = 0;
 
-static uchar *data = scene1_bin;
+static uchar *data = &scene1_bin[0];
 
 static ushort pal[16];
 static MyPoint2D pt[16];
 
-static QuadStore quads[1024];
+static QuadStore quads[MAX_POLYS];
 static QuadStore *quadPtr;
 static int numQuads = 0;
 
-#define MAX_POLYS 1024
+static int leftEdgeFlat[SCREEN_HEIGHT];
+static int rightEdgeFlat[SCREEN_HEIGHT];
+
 static CCB polys[MAX_POLYS];
 
 static int mustClearScreen = 0;
 
-#define ANIM_WIDTH 256
-#define ANIM_HEIGHT 200
+
 
 const int animPosX = (SCREEN_WIDTH - ANIM_WIDTH) / 2;
 const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2;
 
+static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
+{
+	int *edgeListToWriteFlat;
+	MyPoint2D *pTemp;
+
+	if (p0->y == p1->y) return;
+
+	// Assumes CCW
+	if (p0->y < p1->y) {
+		edgeListToWriteFlat = &leftEdgeFlat[0];
+	}
+	else {
+		edgeListToWriteFlat = &rightEdgeFlat[0];
+
+		pTemp = p0;
+		p0 = p1;
+		p1 = pTemp;
+	}
+
+    {
+        const int x0 = p0->x; const int y0 = p0->y;
+        const int x1 = p1->x; const int y1 = p1->y;
+
+        const int dx = INT_TO_FIXED(x1 - x0, FP_BITS) / (y1 - y0);
+
+        int xp = INT_TO_FIXED(x0, FP_BITS);
+        int yp = y0;
+        do
+        {
+            if (yp >= 0 && yp < SCREEN_HEIGHT)
+            {
+                edgeListToWriteFlat[yp] = FIXED_TO_INT(xp, FP_BITS);
+            }
+            xp += dx;
+
+        } while (yp++ != y1);
+    }
+}
+
+void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
+{
+	//const int x0 = p[0].x;
+	const int y0 = p[0].y;
+	//const int x1 = p[1].x;
+	const int y1 = p[1].y;
+	//const int x2 = p[2].x;
+	const int y2 = p[2].y;
+	//const int x3 = p[3].x;
+	const int y3 = p[3].y;
+
+	const int scrWidth = SCREEN_WIDTH;
+	const int scrHeight = SCREEN_HEIGHT;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	ushort *dst;
+	int x,y;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	if (yMin < 0) yMin = 0;
+	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
+	for (y = yMin; y <= yMax; y++)
+	{
+		int xl = leftEdgeFlat[y];
+		int xr = rightEdgeFlat[y];
+
+		if (xl < 0) xl = 0;
+		if (xr > scrWidth - 1) xr = scrWidth - 1;
+
+		if (xl == xr) ++xr;
+
+        dst = screen + (y >> 1) * (scrWidth << 1) + (y & 1) + (xl << 1);
+		for (x = xl; x < xr; ++x) {
+			*dst = color;
+			dst += 2;
+		}
+	}
+}
+
+
 void initCCBpolys()
 {
-	CCB *CCBPtr = polys;
+	CCB *CCBPtr = &polys[0];
 	int i;
 
 	for (i=0; i<MAX_POLYS; ++i) {
@@ -83,6 +180,8 @@ static void addPolygon(MyPoint2D *pt, int numVertices, int paletteIndex)
 	int pBaseIndex = 0;
 	int pStartIndex = 1;
 	const int maxIndex = numVertices - 1;
+
+	if (numVertices < 3) return;
 
 	//if (0==isPolygonConvex(pt, numVertices)) color = 31 << 10;
 
@@ -155,17 +254,23 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 
 static void renderPolygons()
 {
+    int i;
     static MyPoint2D p[4];
+    ushort *screen;
 
     CCB *quadCCB = &polys[0];
 
-    int i;
+    if (numQuads==0) return;
+
+    screen = getVideoramAddress();
+
 	for (i=0; i<numQuads; ++i) {
 		p[0].x = quads[i].p0.x + animPosX; p[0].y = quads[i].p0.y + animPosY;
 		p[1].x = quads[i].p1.x + animPosX; p[1].y = quads[i].p1.y + animPosY;
 		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
 		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
-		mapCelToFlatQuad(quadCCB, p, quads[i].c);
+		//mapCelToFlatQuad(quadCCB, p, quads[i].c);
+        drawFlatQuad(&p[0], quads[i].c, screen);
 		++quadCCB;
 	}
 	--quadCCB;

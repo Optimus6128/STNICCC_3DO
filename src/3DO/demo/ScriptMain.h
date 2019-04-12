@@ -12,6 +12,11 @@ typedef struct QuadStore
 	unsigned short c;
 }QuadStore;
 
+#define INT_TO_FIXED(i,b) ((i) << b)
+#define FIXED_TO_INT(x,b) ((x) >> b)
+
+#define FP_BITS 12
+
 void runAnimationScript(void);
 void initCCBpolys(void);
 

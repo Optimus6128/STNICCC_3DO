@@ -50,6 +50,11 @@ void initGraphics()
 	vsyncItem = GetVBLIOReq();
 }
 
+ushort *getVideoramAddress()
+{
+    return (ushort*)Bitmaps[screenPage]->bm_Buffer;
+}
+
 void displayScreen()
 {
     DisplayScreen(Screencontext.sc_Screens[screenPage], 0 );

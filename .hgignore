@@ -7,3 +7,4 @@ LaunchMe
 *.iso
 *.o
 *.exe
+src/3DO/demo.iso.fstree
