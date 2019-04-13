@@ -1,6 +1,8 @@
 #ifndef SCRIPT_MAIN_H
 #define SCRIPT_MAIN_H
 
+#include "Types.h"
+
 typedef struct MyPoint2D
 {
     int x, y;
@@ -12,12 +14,14 @@ typedef struct QuadStore
 	unsigned short c;
 }QuadStore;
 
-#define INT_TO_FIXED(i,b) ((i) << b)
-#define FIXED_TO_INT(x,b) ((x) >> b)
 
 #define FP_BITS 12
 
-void runAnimationScript(void);
+#define INT_TO_FIXED(i,b) ((i) << b)
+#define FIXED_TO_INT(x,b) ((x) >> b)
+
+
+void runAnimationScript(bool gpuOn);
 void initCCBpolys(void);
 
 #endif

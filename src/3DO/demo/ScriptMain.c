@@ -24,13 +24,13 @@ static int leftEdgeFlat[SCREEN_HEIGHT];
 static int rightEdgeFlat[SCREEN_HEIGHT];
 
 static CCB polys[MAX_POLYS];
+static MyPoint2D vi[256];
 
-static int mustClearScreen = 0;
-
-
+static bool mustClearScreen = false;
 
 const int animPosX = (SCREEN_WIDTH - ANIM_WIDTH) / 2;
 const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2;
+
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -73,13 +73,9 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 
 void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
 {
-	//const int x0 = p[0].x;
 	const int y0 = p[0].y;
-	//const int x1 = p[1].x;
 	const int y1 = p[1].y;
-	//const int x2 = p[2].x;
 	const int y2 = p[2].y;
-	//const int x3 = p[3].x;
 	const int y3 = p[3].y;
 
 	const int scrWidth = SCREEN_WIDTH;
@@ -145,45 +141,63 @@ void initCCBpolys()
 	}
 }
 
-/*static int isPolygonConvex(MyPoint2D *pt, int numVertices)
+/*
+static void waiterzClearAndPrintTwoNums(int howMany, ushort color, int y, int num1, int num2)
 {
-    int i;
-	int zcross, zcross0;
+    int waitFrame = 0;
+    while (waitFrame < howMany) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+        drawNumber(0, y, num1);
+        drawNumber(32, y, num2);
+        renderTextSpace();
+        displayScreen();
+        ++waitFrame;
+    }
+}
 
-	for (i = 0; i < numVertices; ++i) {
-		const int i0 = i;
-		const int i1 = (i + 1) % numVertices;
-		const int i2 = (i + 2) % numVertices;
+static void waiterzClearAndPrintNum(int howMany, ushort color, int y, int num)
+{
+    int waitFrame = 0;
+    while (waitFrame < howMany) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+        drawNumber(0, y, num);
+        renderTextSpace();
+        displayScreen();
+        ++waitFrame;
+    }
+}
 
-		MyPoint2D v0, v1;
+static void waiterzClear(int howMany, ushort color)
+{
+    int waitFrame = 0;
+    while (waitFrame < howMany) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+        displayScreen();
+        ++waitFrame;
+    }
+}
 
-		v0.x = pt[i1].x - pt[i0].x;  v0.y = pt[i1].y - pt[i0].y;
-		v1.x = pt[i2].x - pt[i1].x;  v1.y = pt[i2].y - pt[i1].y;
-
-		zcross = v0.x * v1.y - v0.y * v1.x;
-		if (i == 0) {
-			zcross0 = zcross;
-		} else {
-			zcross *= zcross0;
-			if (zcross < 0) {
-				return 0;
-			}
-		}
-	}
-	return 1;
+static void waiterz(int howMany)
+{
+    int waitFrame = 0;
+    while (waitFrame < howMany) {
+        displayScreen();
+        ++waitFrame;
+    }
 }*/
 
-static void addPolygon(MyPoint2D *pt, int numVertices, int paletteIndex)
+static void addPolygon(int numVertices, int paletteIndex)
 {
-	ushort color = pal[paletteIndex];
-
 	int pBaseIndex = 0;
 	int pStartIndex = 1;
 	const int maxIndex = numVertices - 1;
 
-	if (numVertices < 3) return;
+    ushort color;
 
-	//if (0==isPolygonConvex(pt, numVertices)) color = 31 << 10;
+    color = paletteIndex << 11;   //pal[paletteIndex];
+    //color = pal[paletteIndex];
+
+	if (numVertices < 3 || numVertices > 16) return;
 
 	while(pStartIndex < maxIndex)
 	{
@@ -201,28 +215,6 @@ static void addPolygon(MyPoint2D *pt, int numVertices, int paletteIndex)
 		++numQuads;
 	}
 }
-
-static void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color)
-{
-	static CCB clearCCB;
-
-	clearCCB.ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_LAST;
-
-	clearCCB.ccb_PIXC = 0x1F00;
-	clearCCB.ccb_PRE0 = 0x40000016;
-	clearCCB.ccb_PRE1 = 0x03FF1000;
-	clearCCB.ccb_SourcePtr = (CelData*)0;
-	clearCCB.ccb_PLUTPtr = (void*)(color<<16);
-	clearCCB.ccb_XPos = posX<<16;
-	clearCCB.ccb_YPos = posY<<16;
-	clearCCB.ccb_HDX = width<<20;
-	clearCCB.ccb_HDY = 0<<20;
-	clearCCB.ccb_VDX = 0<<16;
-	clearCCB.ccb_VDY = height<<16;
-
-	drawCels(&clearCCB);
-}
-
 
 static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 {
@@ -252,13 +244,11 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	c->ccb_PLUTPtr = (void *)((unsigned int)color<<16);
 }
 
-static void renderPolygons()
+static void renderPolygonsSoftware()
 {
     int i;
     static MyPoint2D p[4];
     ushort *screen;
-
-    CCB *quadCCB = &polys[0];
 
     if (numQuads==0) return;
 
@@ -269,8 +259,24 @@ static void renderPolygons()
 		p[1].x = quads[i].p1.x + animPosX; p[1].y = quads[i].p1.y + animPosY;
 		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
 		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
-		//mapCelToFlatQuad(quadCCB, p, quads[i].c);
         drawFlatQuad(&p[0], quads[i].c, screen);
+	}
+}
+static void renderPolygons()
+{
+    int i;
+    static MyPoint2D p[4];
+
+    CCB *quadCCB = &polys[0];
+
+    if (numQuads==0) return;
+
+	for (i=0; i<numQuads; ++i) {
+		p[0].x = quads[i].p0.x + animPosX; p[0].y = quads[i].p0.y + animPosY;
+		p[1].x = quads[i].p1.x + animPosX; p[1].y = quads[i].p1.y + animPosY;
+		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
+		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
+		mapCelToFlatQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
 	}
 	--quadCCB;
@@ -339,7 +345,6 @@ static void interpretDescriptorSpecial(uchar descriptor)
 static void interpretIndexedMode()
 {
     int i, n;
-	static MyPoint2D vi[256];
 
 	uchar descriptor = 0;
 	int polyPaletteIndex, polyNumVertices;
@@ -351,21 +356,22 @@ static void interpretIndexedMode()
 		vi[i].y = (int)*data++;
 	}
 
-	while(1) {
+	while(true) {
 		descriptor = *data++;
 		if (descriptor >= 0xfd) break;
 
-        polyPaletteIndex = (int)(descriptor >> 4);
+        polyPaletteIndex = (int)(descriptor >> 4) & 15;
         polyNumVertices = (int)(descriptor & 15);
 
 		for (n = 0; n < polyNumVertices; ++n) {
 			int vertexId = *data++;
-
 			pt[n].x = vi[vertexId].x;
 			pt[n].y = vi[vertexId].y;
 		}
-		addPolygon(pt, polyNumVertices, polyPaletteIndex);
+
+		addPolygon(polyNumVertices, polyPaletteIndex);
 	}
+
 	interpretDescriptorSpecial(descriptor);
 }
 
@@ -386,7 +392,7 @@ static void interpretNonIndexedMode()
 			pt[n].x = *data++;
 			pt[n].y = *data++;
 		}
-		addPolygon(pt, polyNumVertices, polyPaletteIndex);
+		addPolygon(polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
 }
@@ -395,12 +401,12 @@ static void decodeFrame()
 {
 	uchar flags = *data++;
 
-	mustClearScreen = 0;
+	mustClearScreen = false;
 	numQuads = 0;
 	quadPtr = &quads[0];
 
 	if (flags & 1) {
-		mustClearScreen = 1;
+		mustClearScreen = true;
 	}
 	if (flags & 2) {
 		interpretPaletteData();
@@ -413,14 +419,17 @@ static void decodeFrame()
 	}
 }
 
-void runAnimationScript()
+void runAnimationScript(bool gpuOn)
 {
     decodeFrame();
 
-    if (nextFrame < 2) clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 31);
+    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
-    if (mustClearScreen==1) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-    renderPolygons();
+    if (gpuOn) {
+        renderPolygons();
+    } else {
+        renderPolygonsSoftware();
+    }
 
     ++nextFrame;
 

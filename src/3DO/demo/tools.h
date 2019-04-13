@@ -1,11 +1,9 @@
 #ifndef TOOLS_H
 #define TOOLS_H
 
-#define TEXT_SPACE_WIDTH 40
+#define TEXT_SPACE_WIDTH 32
 #define TEXT_SPACE_HEIGHT 16
 #define TEXT_SPACE_SIZE (TEXT_SPACE_WIDTH * TEXT_SPACE_HEIGHT)
-
-extern int nframe;
 
 void initFonts(void);
 void initTimer(void);

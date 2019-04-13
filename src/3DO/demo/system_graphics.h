@@ -39,6 +39,9 @@ void initGraphics(void);
 void displayScreen(void);
 void drawCels(CCB *cels);
 
+void fadeToBlack(void);
+void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color);
+
 ushort *getVideoramAddress(void);
 
 extern bool vsync;

@@ -6,12 +6,23 @@
 #include "tools.h"
 #include "ScriptMain.h"
 
+static bool restart = false;
 
 static bool PressedA = false;
+static bool PressedB = false;
+static bool PressedC = false;
 static bool PressedAonce = false;
+static bool PressedBonce = false;
+static bool PressedConce = false;
+static bool gpuOn = false;
 
+static void quit()
+{
+    KillEventUtility();
+	fadeToBlack();
+}
 
-int32 getJoystickState()
+static unsigned int getJoystickState()
 {
 	ControlPadEventData cpaddata;
 	cpaddata.cped_ButtonBits=0;
@@ -20,14 +31,15 @@ int32 getJoystickState()
 	return ( cpaddata.cped_ButtonBits );
 }
 
-int32 processJoystick(void)
+static void processJoystick()
 {
 	int joybits;
 
 	joybits=getJoystickState();
 
-	if (joybits&ControlStart)
-        return 1;
+	if (joybits&ControlStart) {
+        restart = true;
+	}
 
 	if(joybits&ControlA) {
 		PressedAonce = !PressedA;
@@ -35,10 +47,56 @@ int32 processJoystick(void)
 	}
 	else PressedA = false;
 
-	return(0);
+	if(joybits&ControlB) {
+		PressedBonce = !PressedB;
+		PressedB = true;
+	}
+	else PressedB = false;
+
+	if(joybits&ControlC) {
+		PressedConce = !PressedC;
+		PressedC = true;
+	}
+	else PressedC = false;
 }
 
-void initSystem()
+static void progressScreen()
+{
+    static int progress = 0;
+
+    int x,y,yp;
+    ushort *vram;
+
+    while(!PressedAonce && !PressedBonce) {
+        processJoystick();
+        for(y=0; y<SCREEN_HEIGHT; ++y) {
+            vram = getVideoramAddress() + (y >> 1) * (2 * SCREEN_WIDTH) + (y & 1);
+            yp = ((y + 1) * progress) & 255;
+            for (x=0;x<SCREEN_WIDTH; ++x) {
+                *vram = x ^ yp;
+                vram += 2;
+            }
+        }
+        displayScreen();
+    }
+    if (PressedBonce) gpuOn = true;
+
+    PressedAonce = false;
+    PressedBonce = false;
+
+    ++progress;
+}
+
+static void clearScreen(ushort color)
+{
+    // Do it twice to clear both two video pages
+    clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+    displayScreen();
+    clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+    displayScreen();
+}
+
+static void initSystem()
 {
 	OpenMathFolio();
     OpenGraphicsFolio();
@@ -46,27 +104,36 @@ void initSystem()
 	OpenAudioFolio();
 }
 
-void initStuff()
+static void initStuff()
 {
 	initSystem();
 	initGraphics();
 
+	progressScreen();
 	initFonts();
+	progressScreen();
 	initTimer();
 
-	initCCBpolys();
+	if (gpuOn) {
+        progressScreen();
+        initCCBpolys();
+	}
 }
 
-void script()
+static void script()
 {
-    if (PressedAonce) vsync = !vsync;
+    if (PressedConce) vsync = !vsync;
 
-    runAnimationScript();
+    runAnimationScript(gpuOn);
 }
 
-int32 mainLoop()
+static void mainLoop()
 {
-	for(;;)
+    progressScreen();
+
+    clearScreen(15);
+
+	while(!restart)
 	{
 	    processJoystick();
 
@@ -78,9 +145,9 @@ int32 mainLoop()
 		displayScreen();
 
 		clearTextSpace();
-
-		++nframe;
 	}
+
+	quit();
 }
 
 

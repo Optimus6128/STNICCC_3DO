@@ -67,3 +67,29 @@ void drawCels(CCB *cels)
 {
     DrawCels(BitmapItems[screenPage], cels);
 }
+
+void fadeToBlack()
+{
+    FadeToBlack(&Screencontext, FADE_FRAMECOUNT);
+}
+
+void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color)
+{
+	static CCB clearCCB;
+
+	clearCCB.ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_LAST;
+
+	clearCCB.ccb_PIXC = 0x1F00;
+	clearCCB.ccb_PRE0 = 0x40000016;
+	clearCCB.ccb_PRE1 = 0x03FF1000;
+	clearCCB.ccb_SourcePtr = (CelData*)0;
+	clearCCB.ccb_PLUTPtr = (void*)(color<<16);
+	clearCCB.ccb_XPos = posX<<16;
+	clearCCB.ccb_YPos = posY<<16;
+	clearCCB.ccb_HDX = width<<20;
+	clearCCB.ccb_HDY = 0<<20;
+	clearCCB.ccb_VDX = 0<<16;
+	clearCCB.ccb_VDY = height<<16;
+
+	drawCels(&clearCCB);
+}
