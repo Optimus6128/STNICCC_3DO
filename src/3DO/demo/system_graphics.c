@@ -45,7 +45,7 @@ void initGraphics()
 	ioInfo.ioi_CmdOptions = 0xffffffff;
 	ioInfo.ioi_Offset = 0x00000000; // background colour
 	ioInfo.ioi_Recv.iob_Buffer = Bitmaps[0]->bm_Buffer;
-	ioInfo.ioi_Recv.iob_Len = width*height*2;   // 2 could be because 16bit and not because number of buffers, gotta check
+	ioInfo.ioi_Recv.iob_Len = width*height*NUM_SCREEN_PAGES;   // 2 could be because 16bit and not because number of buffers, gotta check
 
 	vsyncItem = GetVBLIOReq();
 }
@@ -60,7 +60,7 @@ void displayScreen()
     DisplayScreen(Screencontext.sc_Screens[screenPage], 0 );
     if (vsync) WaitVBL(vsyncItem, 1);
 
-    screenPage = (screenPage+ 1) & 1;
+    screenPage = (screenPage+ 1) % NUM_SCREEN_PAGES;
 }
 
 void drawCels(CCB *cels)

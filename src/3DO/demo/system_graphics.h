@@ -33,7 +33,7 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 
-#define NUM_SCREEN_PAGES 2
+#define NUM_SCREEN_PAGES 4
 
 void initGraphics(void);
 void displayScreen(void);

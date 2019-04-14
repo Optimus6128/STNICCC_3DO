@@ -3,17 +3,17 @@
 #include "main.h"
 #include "system_graphics.h"
 #include "tools.h"
+#include "sound.h"
 
 #define MAX_POLYS 256
 #define ANIM_WIDTH 256
 #define ANIM_HEIGHT 200
 
-static int nextFrame = 0;
 static unsigned int block64index = 0;
 
 static uchar *data = &scene1_bin[0];
 
-static ushort pal[16];
+static int pal32[16];
 static MyPoint2D pt[16];
 
 static QuadStore quads[MAX_POLYS];
@@ -141,51 +141,6 @@ void initCCBpolys()
 	}
 }
 
-/*
-static void waiterzClearAndPrintTwoNums(int howMany, ushort color, int y, int num1, int num2)
-{
-    int waitFrame = 0;
-    while (waitFrame < howMany) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-        drawNumber(0, y, num1);
-        drawNumber(32, y, num2);
-        renderTextSpace();
-        displayScreen();
-        ++waitFrame;
-    }
-}
-
-static void waiterzClearAndPrintNum(int howMany, ushort color, int y, int num)
-{
-    int waitFrame = 0;
-    while (waitFrame < howMany) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-        drawNumber(0, y, num);
-        renderTextSpace();
-        displayScreen();
-        ++waitFrame;
-    }
-}
-
-static void waiterzClear(int howMany, ushort color)
-{
-    int waitFrame = 0;
-    while (waitFrame < howMany) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-        displayScreen();
-        ++waitFrame;
-    }
-}
-
-static void waiterz(int howMany)
-{
-    int waitFrame = 0;
-    while (waitFrame < howMany) {
-        displayScreen();
-        ++waitFrame;
-    }
-}*/
-
 static void addPolygon(int numVertices, int paletteIndex)
 {
 	int pBaseIndex = 0;
@@ -194,8 +149,9 @@ static void addPolygon(int numVertices, int paletteIndex)
 
     ushort color;
 
-    color = paletteIndex << 11;   //pal[paletteIndex];
-    //color = pal[paletteIndex];
+    if (paletteIndex < 0) paletteIndex = 0;
+
+    color = pal32[paletteIndex];
 
 	if (numVertices < 3 || numVertices > 16) return;
 
@@ -304,7 +260,7 @@ static void interpretPaletteData()
 			g = ((color >> 4) & 7) << 2;
 			b = (color & 7) << 2;
 
-			pal[palNum] = (r << 10) | (g << 5) | b;
+			pal32[palNum] = (r << 10) | (g << 5) | b;
 		}
 		bitmask >>= 1;
 	}
@@ -336,7 +292,6 @@ static void interpretDescriptorSpecial(uchar descriptor)
             // restart
             data = &scene1_bin[0];
             block64index = 0;
-            nextFrame = 0;
         }
         break;
 	}
@@ -430,8 +385,4 @@ void runAnimationScript(bool gpuOn)
     } else {
         renderPolygonsSoftware();
     }
-
-    ++nextFrame;
-
-	drawNumber(0, 8, nextFrame);
 }
