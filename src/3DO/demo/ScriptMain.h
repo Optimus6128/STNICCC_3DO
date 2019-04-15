@@ -21,7 +21,7 @@ typedef struct QuadStore
 #define FIXED_TO_INT(x,b) ((x) >> b)
 
 
-void runAnimationScript(bool gpuOn);
+void runAnimationScript(bool demo, bool gpuOn);
 void initCCBpolys(void);
 
 #endif

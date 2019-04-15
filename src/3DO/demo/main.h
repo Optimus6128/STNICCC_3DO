@@ -33,4 +33,6 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 
+#define BG_COLOR 15
+
 #endif

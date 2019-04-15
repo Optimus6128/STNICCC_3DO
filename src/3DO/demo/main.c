@@ -84,10 +84,10 @@ static void progressScreen()
                 vram += 2;
             }
         }
-        //drawText(16, 72, 6, "Press:");
-        //drawText(32, 96, 29, "A for Demo (Hardware & Sound)");
-        //drawText(40, 112, 26, "B for Benchmark (Hardware)");
-        //drawText(48, 128, 26, "C for Benchmark (Software)");
+        drawText(16, 80, "Press:");
+        drawText(32, 104, "A for Demo (Hardware & Sound)");
+        drawText(40, 120, "B for Benchmark (Hardware)");
+        drawText(48, 136, "C for Benchmark (Software)");
         displayScreen();
     }
 
@@ -130,14 +130,14 @@ static void initStuff()
 
 static void script()
 {
-    runAnimationScript(gpuOn);
+    runAnimationScript(demo, gpuOn);
 }
 
 static void mainLoop()
 {
     progressScreen();
 
-    clearScreen(15);
+    clearScreen(BG_COLOR);
 
     vsync = false;
     if (demo) {
@@ -152,11 +152,8 @@ static void mainLoop()
 		script();
 
         showFPS();
-		renderTextSpace();
 
 		displayScreen();
-
-		clearTextSpace();
 	}
 
 	quit();

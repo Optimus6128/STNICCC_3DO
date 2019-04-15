@@ -3,20 +3,31 @@
 #include "bitfonts.h"
 #include "main.h"
 #include "timerutils.h"
+#include "system_graphics.h"
 
-ubyte textSpaceBuffer[TEXT_SPACE_SIZE];
-uint16 textSpacePal[32];
-CCB *textSpaceCel;
-Point textSpaceQuad[4];
+#define MAX_STRING_LENGTH 64
+#define NUM_FONTS 59
 
-int fps = 0, pframe = 0, nframe = 0, atime = 0;
+#define FONT_WIDTH 8
+#define FONT_HEIGHT 8
+#define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
 
-Item timerIOreq;
 
 // -------------------------------------
 
-char sbuffer[256];
-unsigned char fonts[59*64];
+static CCB *textCel[MAX_STRING_LENGTH];
+
+static char sbuffer[MAX_STRING_LENGTH+1];
+static uchar fontsBmp[NUM_FONTS * FONT_SIZE];
+static uint16 fontsPal[32];
+static uchar fontsMap[256];
+
+
+// -------------------------------------
+
+static int fps = 0, pframe = 0, nframe = 0, atime = 0;
+static Item timerIOreq;
+
 
 void initTimer()
 {
@@ -25,75 +36,81 @@ void initTimer()
 
 void initFonts()
 {
-    int n, x, y;
     int i = 0;
+    int n, x, y;
 
-    textSpaceCel = CreateCel(TEXT_SPACE_WIDTH, TEXT_SPACE_HEIGHT, 8, CREATECEL_CODED, textSpaceBuffer);
-
-    for (y = 0; y < 32; y++)
-    {
-        ubyte c = y;
-        if (c==0) c = 1;
-        textSpacePal[y] = MakeRGB15(c, c, c);
+    for (n=0; n<32; ++n) {
+        fontsPal[n] = MakeRGB15(n, n, n);
     }
 
-    textSpaceCel->ccb_SourcePtr = (CelData*)textSpaceBuffer;
-    textSpaceCel->ccb_PLUTPtr = (PLUTChunk*)textSpacePal;
-
-	for (n=0; n<59; n++)
-	{
-		for (y=0; y<8; y++)
-		{
+	for (n=0; n<59; n++) {
+		for (y=0; y<8; y++) {
 			int c = bitfonts[i++];
-			for (x=0; x<8; x++)
-			{
-				fonts[(n << 6) + x + (y<<3)] = ((c >>  (7 - x)) & 1) * 31;
+			for (x=0; x<8; x++) {
+				fontsBmp[(n << 6) + x + (y<<3)] = ((c >>  (7 - x)) & 1) * 31;
 			}
 		}
 	}
-}
 
-void drawFont(int xp, int yp, int ch)
-{
-    int x,y;
-    uint8 *vram;
-    if (xp <0 || xp > TEXT_SPACE_WIDTH - 8) return;
+	for (i=0; i<256; ++i) {
+        uchar c = i;
 
-    vram = (uint8*)(textSpaceBuffer + xp + yp * TEXT_SPACE_WIDTH);
-    for (y=0; y<8; y++)
-    {
-        int yc = yp + y;
-        if ((yc>-1) && (yc<TEXT_SPACE_HEIGHT))
-        {
-            int yi = y << 3;
-            for (x=0; x<8; x++)
-            {
-                *vram++ = fonts[(ch << 6) + yi + x];
-            }
-            vram-=8;
-        }
-        vram+=TEXT_SPACE_WIDTH;
+        if (c>31 && c<92)
+            c-=32;
+        else
+            if (c>96 && c<123) c-=64;
+        else
+            c = 255;
+
+        fontsMap[i] = c;
+	}
+
+    for (i=0; i<MAX_STRING_LENGTH; ++i) {
+        textCel[i] = CreateCel(FONT_WIDTH, FONT_HEIGHT, 8, CREATECEL_CODED, fontsBmp);
+        textCel[i]->ccb_PLUTPtr = (PLUTChunk*)fontsPal;
+
+        textCel[i]->ccb_HDX = 1 << 20;
+        textCel[i]->ccb_HDY = 0 << 20;
+        textCel[i]->ccb_VDX = 0 << 16;
+        textCel[i]->ccb_VDY = 1 << 16;
+
+        textCel[i]->ccb_Flags |= (CCB_ACSC | CCB_ALSC);
+
+        if (i > 0) LinkCel(textCel[i-1], textCel[i]);
     }
 }
 
-void drawText(int xtp, int ytp, int cn, char *text)
+void drawText(int xtp, int ytp, char *text)
 {
-    int n;
-	for (n = 0; n<cn; n++)
-	{
-		char c = *text++;
-        if (c>96 && c<123) c-=32;
+    int i = 0;
+    char c;
 
-   		if (c>31 && c<92) drawFont(xtp, ytp, c - 32);
-   			else if (c==0) n = cn;
-   		xtp+=8; if (xtp>TEXT_SPACE_WIDTH -8 -1) n = cn; // memory leak needs -1? Still memory leak dot
-	}
+    do {
+        c = fontsMap[*text++];
+
+        textCel[i]->ccb_XPos = xtp << 16;
+        textCel[i]->ccb_YPos = ytp << 16;
+
+        textCel[i]->ccb_SourcePtr = (CelData*)&fontsBmp[c * FONT_SIZE];
+
+        xtp+=8;
+    } while(c!=255 && ++i < MAX_STRING_LENGTH);
+
+    --i;
+	textCel[i]->ccb_Flags |= CCB_LAST;
+	drawCels(textCel[0]);
+	textCel[i]->ccb_Flags ^= CCB_LAST;
+}
+
+void setFontColor(ushort c)
+{
+    fontsPal[31] = c;
 }
 
 void drawNumber(int xtp, int ytp, int num)
 {
     sprintf(sbuffer, "%d", num);
-    drawText(xtp, ytp, 10, sbuffer);
+    drawText(xtp, ytp, sbuffer);
 }
 
 int getTicks()
@@ -102,29 +119,13 @@ int getTicks()
     return GetMSecTime(timerIOreq);
 }
 
-void SetQuadFromPosAndSize(Point *aQuad, int32 xPos, int32 yPos, int32 width, int32 height)
-{
-	aQuad[0].pt_X = aQuad[3].pt_X = xPos;
-	aQuad[0].pt_Y = aQuad[1].pt_Y = yPos;
-	aQuad[1].pt_X = aQuad[2].pt_X = xPos + width;
-	aQuad[2].pt_Y = aQuad[3].pt_Y = yPos + height;
-}
-
-void clearTextSpace()
-{
-    memset(textSpaceBuffer, 0, TEXT_SPACE_SIZE);
-}
-
-void renderTextSpace()
-{
-    SetQuadFromPosAndSize(textSpaceQuad, 0, 0, TEXT_SPACE_WIDTH, TEXT_SPACE_HEIGHT);
-    MapCel(textSpaceCel, textSpaceQuad);
-    drawCels(textSpaceCel);
-}
-
 void showFPS()
 {
-    int i;
+    const int posX = 0;
+    const int posY = 0;
+
+    clearScreenWithRect(posX, posY, 24, 8, BG_COLOR);
+
     if (getTicks() - atime >= 1000)
     {
         atime = getTicks();
@@ -132,7 +133,7 @@ void showFPS()
         pframe = nframe;
     }
     sprintf(sbuffer, "%d", fps);
-    drawText(0, 0, 8, sbuffer);
+    drawText(posX, posY, sbuffer);
     ++nframe;
 }
 

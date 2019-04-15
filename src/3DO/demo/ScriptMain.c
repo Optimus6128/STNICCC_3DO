@@ -29,8 +29,15 @@ static MyPoint2D vi[256];
 static bool mustClearScreen = false;
 
 const int animPosX = (SCREEN_WIDTH - ANIM_WIDTH) / 2;
-const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2;
+const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2 - 8;
 
+static char stbuffer[10];
+static char avgfpsbuffer[16];
+
+static bool firstTime = true;
+static bool endOfBench = false;
+static int startBenchTime;
+static int frameNum = 0;
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -292,6 +299,7 @@ static void interpretDescriptorSpecial(uchar descriptor)
             // restart
             data = &scene1_bin[0];
             block64index = 0;
+            endOfBench = true;
         }
         break;
 	}
@@ -374,8 +382,56 @@ static void decodeFrame()
 	}
 }
 
-void runAnimationScript(bool gpuOn)
+void hackNumToTwoDigitChars(char *buff, int num)    // no time to think of a better way
 {
+    if (num < 10) {
+        buff[0] = '0';
+        buff[1] = 48 + num;
+    } else {
+        sprintf(buff, "%d", num);
+    }
+}
+
+void drawTimer()
+{
+    static int min, sec, mls, avgfps;
+    int elapsed = getTicks() - startBenchTime;
+
+    if (endOfBench) {
+        int c = elapsed >> 5;
+        setFontColor(MakeRGB15(c, c, c));
+    } else {
+        min = elapsed / 60000;
+        sec = (elapsed / 1000) % 60;
+        mls = elapsed % 100;
+        avgfps = (frameNum * 1000) / elapsed;
+    }
+
+    clearScreenWithRect(128, 224, 64, 8, BG_COLOR);
+
+    hackNumToTwoDigitChars(&stbuffer[0], min);
+    stbuffer[2] = ':';
+    hackNumToTwoDigitChars(&stbuffer[3], sec);
+    stbuffer[5] = ':';
+    hackNumToTwoDigitChars(&stbuffer[6], mls);
+
+    drawText(128, 224, stbuffer);
+
+    if (endOfBench) {
+        setFontColor(MakeRGB15(31, 24, 16));
+        sprintf(avgfpsbuffer, "Avg FPS: %d", avgfps);
+        drawText(216, 224, avgfpsbuffer);
+        setFontColor(MakeRGB15(31, 31, 31));
+    }
+}
+
+void runAnimationScript(bool demo, bool gpuOn)
+{
+    if (firstTime) {
+        startBenchTime = getTicks();
+        firstTime = false;
+    }
+
     decodeFrame();
 
     if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
@@ -385,4 +441,8 @@ void runAnimationScript(bool gpuOn)
     } else {
         renderPolygonsSoftware();
     }
+
+    if (!demo) drawTimer();
+
+    ++frameNum;
 }
