@@ -257,19 +257,19 @@ static void interpretPaletteData()
 	int bitmask = (bitmaskH << 8) | bitmaskL;
 
 	for (i = 0; i < 16; ++i) {
-		int palNum = 15 - i;
-		if (bitmask & 1) {
+		int palNum = i;
+		if (bitmask & 0x8000) {
 			uchar colorH = *data++;
 			uchar colorL = *data++;
 			int color = (colorH << 8) | colorL;
 
-			r = ((color >> 8) & 7) << 2;
-			g = ((color >> 4) & 7) << 2;
-			b = (color & 7) << 2;
+			r = (color >> 8) & 7;
+			g = (color >> 4) & 7;
+			b = color & 7;
 
-			pal32[palNum] = (r << 10) | (g << 5) | b;
+			pal32[palNum] = (r << 12) | (g << 7) | (b << 2);
 		}
-		bitmask >>= 1;
+		bitmask <<= 1;
 	}
 }
 

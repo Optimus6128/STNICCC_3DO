@@ -38,10 +38,26 @@ void Script::init(ScreenBuffer *screen)
 
 static uint color32from15(ushort color)
 {
-	int r = ((color >> 10) & 31) << 3;
-	int g = ((color >> 5) & 31) << 3;
-	int b = (color & 31) << 3;
+	uint r = (uint)(((color >> 10) & 31) << 3);
+	uint g = (uint)(((color >> 5) & 31) << 3);
+	uint b = (uint)((color & 31) << 3);
 	return (r << 16) | (g << 8) | b;
+}
+
+static void drawPalette(ScreenBuffer *screen)
+{
+	uint *dst = (uint*)screen->vram;
+	const int xp = 64;
+	const int yp = 692;
+	const int step = 56;
+	const int size = step >> 1;
+	for (int i = 0; i < 16; ++i) {
+		for (int y = 0; y < size; ++y) {
+			for (int x = 0; x < size; ++x) {
+				*(dst + (yp + y) * screen->width + (xp + x + i * step)) = color32from15(pal[i]);
+			}
+		}
+	}
 }
 
 static bool isPolygonConvex(Point2D *pt, int numVertices)
@@ -62,7 +78,7 @@ static bool isPolygonConvex(Point2D *pt, int numVertices)
 		} else {
 			zcross *= zcross0;
 			if (zcross < 0) {
-				std::cout << "GOTCHA!\n";
+				//std::cout << "GOTCHA!\n";
 				return false;
 			}
 		}
@@ -78,7 +94,7 @@ static void addPolygon(Point2D *pt, int numVertices, int paletteIndex)
 	int pStartIndex = 1;
 	const int maxIndex = numVertices - 1;
 
-	if (numVertices < 3 || numVertices > 7) std::cout << numVertices << std::endl;
+	//if (numVertices < 3 || numVertices > 7) std::cout << numVertices << std::endl;
 
 	//if (!isPolygonConvex(pt, numVertices)) color = 31 << 10;
 
@@ -144,8 +160,8 @@ static void interpretPaletteData()
 	//std::cout << bitmask << std::endl;
 
 	for (int i = 0; i < 16; ++i) {
-		int palNum = 15 - i;
-		if (bitmask & 1) {
+		int palNum = i;
+		if (bitmask & 0x8000) {
 			//ushort color = flipWordEndianess(*((ushort*)data));
 			//data += 2;
 			uchar colorH = *data++;
@@ -153,13 +169,15 @@ static void interpretPaletteData()
 			//int color = (colorL << 8) | colorH;
 			int color = (colorH << 8) | colorL;
 
-			int r = ((color >> 8) & 7) << 2;
-			int g = ((color >> 4) & 7) << 2;
-			int b = (color & 7) << 2;
+			int r = (color >> 8) & 7;
+			int g = (color >> 4) & 7;
+			int b = color & 7;
+			
 			//std::cout << "\tSet color " << palNum << " with values " << "(R: " << r << " , G: " << g << " , B: " << b << ")\n";
-			pal[palNum] = (r << 10) | (g << 5) | b;
+
+			pal[palNum] = (r << 12) | (g << 7) | (b << 2);
 		}
-		bitmask >>= 1;
+		bitmask <<= 1;
 	}
 	//std::cout << std::endl;
 }
@@ -201,10 +219,10 @@ static void interpretDescriptorSpecial(uchar descriptor)
 
 static void interpretDescriptorNormal(uchar descriptor, int &polyNumVertices, int &colorIndex)
 {
-	colorIndex = (int)(descriptor >> 4);
+	colorIndex = (int)((descriptor >> 4) & 15);
 	polyNumVertices = (int)(descriptor & 15);
-
-	//std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex;
+	if (nextFrame == 535)
+	std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex << std::endl;
 }
 
 static void interpretIndexedMode()
@@ -233,12 +251,12 @@ static void interpretIndexedMode()
 
 		for (int n = 0; n < polyNumVertices; ++n) {
 			int vertexId = *data++;
-			std::cout << vertexId << std::endl;
+			//std::cout << vertexId << std::endl;
 			pt[n].x = vi[vertexId].x;
 			pt[n].y = vi[vertexId].y;
-			std::cout << "N: " << n << "   X: " << pt[n].x << "   Y: " << pt[n].y << std::endl;
+			//std::cout << "N: " << n << "   X: " << pt[n].x << "   Y: " << pt[n].y << std::endl;
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 		addPolygon(pt, polyNumVertices, polyPaletteIndex);
 	}
 	interpretDescriptorSpecial(descriptor);
@@ -278,7 +296,7 @@ static void decodeFrame()
 
 	if (flags & 1) {
 		mustClearScreen = true;
-	}
+	} 
 	if (flags & 2) {
 		interpretPaletteData();
 	}
@@ -292,7 +310,7 @@ static void decodeFrame()
 
 static void renderScript(ScreenBuffer *screen)
 {
-	if (nextFrame < 1)
+	//if (nextFrame < 1)
 	if (nextFrame > currentFrame) {
 		currentFrame = nextFrame;
 		//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
@@ -300,9 +318,11 @@ static void renderScript(ScreenBuffer *screen)
 		decodeFrame();
 		++nextFrame;
 
-		if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
+		//if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
+		memset(screen->vram, 24, screen->width * screen->height * (screen->bpp >> 3));
 
 		renderPolygons(screen);
+		drawPalette(screen);
 	}
 }
 

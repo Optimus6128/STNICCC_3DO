@@ -279,10 +279,11 @@ void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color
 void drawFlatQuadScaled(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color, ScreenBuffer *screen)
 {
 	Point2D zp0, zp1, zp2, zp3;
-	zp0.x = p0.x << 2; zp0.y = p0.y << 2;
-	zp1.x = p1.x << 2; zp1.y = p1.y << 2;
-	zp2.x = p2.x << 2; zp2.y = p2.y << 2;
-	zp3.x = p3.x << 2; zp3.y = p3.y << 2;
+	float l = 0.8f;
+	zp0.x = p0.x << 2; zp0.y = (int)((p0.y << 2) * l);
+	zp1.x = p1.x << 2; zp1.y = (int)((p1.y << 2) * l);
+	zp2.x = p2.x << 2; zp2.y = (int)((p2.y << 2) * l);
+	zp3.x = p3.x << 2; zp3.y = (int)((p3.y << 2) * l);
 
 	drawFlatQuad(zp0, zp1, zp2, zp3, color, screen);
 	drawFlatQuad(zp3, zp2, zp1, zp0, color, screen);	// both clockwiseness hack
