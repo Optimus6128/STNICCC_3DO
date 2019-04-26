@@ -8,11 +8,13 @@
 #define MAX_POLYS 256
 #define ANIM_WIDTH 256
 #define ANIM_HEIGHT 200
+#define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
 
 static unsigned int block64index = 0;
 
 static uchar *data = &scene1_bin[0];
 
+static ushort pal16[16];
 static int pal32[16];
 static MyPoint2D pt[16];
 
@@ -28,8 +30,8 @@ static MyPoint2D vi[256];
 
 static bool mustClearScreen = false;
 
-const int animPosX = (SCREEN_WIDTH - ANIM_WIDTH) / 2;
-const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2 - 8;
+static const int animPosX = (SCREEN_WIDTH - ANIM_WIDTH) / 2;
+static const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2 - 8;
 
 static char stbuffer[10];
 static char avgfpsbuffer[16];
@@ -38,6 +40,11 @@ static bool firstTime = true;
 static bool endOfBench = false;
 static int startBenchTime;
 static int frameNum = 0;
+
+static CCB *bufferCel;
+static uchar buffer[ANIM_SIZE];
+
+static bool gpuRenderOn;
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -127,6 +134,54 @@ void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
 	}
 }
 
+void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+{
+	const int y0 = p[0].y;
+	const int y1 = p[1].y;
+	const int y2 = p[2].y;
+	const int y3 = p[3].y;
+
+	const int scrWidth = SCREEN_WIDTH;
+	const int scrHeight = SCREEN_HEIGHT;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	uchar *dst;
+	int x,y;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	if (yMin < 0) yMin = 0;
+	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
+	for (y = yMin; y <= yMax; y++)
+	{
+		int xl = leftEdgeFlat[y];
+		int xr = rightEdgeFlat[y];
+
+		if (xl < 0) xl = 0;
+		if (xr > scrWidth - 1) xr = scrWidth - 1;
+
+		if (xl == xr) ++xr;
+
+        dst = screen + (y << 8) + xl;
+		for (x = xl; x < xr; x+=4) {
+			*dst++ = color;
+		}
+	}
+}
+
 
 void initCCBpolys()
 {
@@ -148,6 +203,19 @@ void initCCBpolys()
 	}
 }
 
+void initCCBbuffer()
+{
+    //setPal(0, 15, 16, 16, 16, 255, 255, 255, pal16);
+
+    bufferCel = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer);
+    bufferCel->ccb_PLUTPtr = (PLUTChunk*)pal16;
+
+    bufferCel->ccb_XPos = animPosX << 16;
+    bufferCel->ccb_YPos = animPosY << 16;
+
+    bufferCel->ccb_Flags |= CCB_NOBLK;
+}
+
 static void addPolygon(int numVertices, int paletteIndex)
 {
 	int pBaseIndex = 0;
@@ -158,7 +226,9 @@ static void addPolygon(int numVertices, int paletteIndex)
 
     if (paletteIndex < 0) paletteIndex = 0;
 
-    color = pal32[paletteIndex];
+    color = paletteIndex;
+    if (gpuRenderOn)
+        color = pal32[paletteIndex];
 
 	if (numVertices < 3 || numVertices > 16) return;
 
@@ -207,6 +277,25 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	c->ccb_PLUTPtr = (void *)((unsigned int)color<<16);
 }
 
+static void renderPolygonsSoftware8()
+{
+    int i;
+    static MyPoint2D p[4];
+    uchar *screen = (uchar*)bufferCel->ccb_SourcePtr;
+
+    if (numQuads==0) return;
+
+	for (i=0; i<numQuads; ++i) {
+		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
+		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
+		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
+		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
+        drawFlatQuad8(&p[0], quads[i].c, screen);
+	}
+
+	drawCels(bufferCel);
+}
+
 static void renderPolygonsSoftware()
 {
     int i;
@@ -225,6 +314,7 @@ static void renderPolygonsSoftware()
         drawFlatQuad(&p[0], quads[i].c, screen);
 	}
 }
+
 static void renderPolygons()
 {
     int i;
@@ -253,6 +343,7 @@ static void interpretPaletteData()
     int i, r, g, b;
     uchar bitmaskH = *data++;
 	uchar bitmaskL = *data++;
+	ushort c;
 
 	int bitmask = (bitmaskH << 8) | bitmaskL;
 
@@ -267,7 +358,10 @@ static void interpretPaletteData()
 			g = (color >> 4) & 7;
 			b = color & 7;
 
-			pal32[palNum] = (r << 12) | (g << 7) | (b << 2);
+			c = (r << 12) | (g << 7) | (b << 2);
+
+			pal32[palNum] = (int)c;
+			pal16[palNum] = c;
 		}
 		bitmask <<= 1;
 	}
@@ -427,6 +521,8 @@ void drawTimer()
 
 void runAnimationScript(bool demo, bool gpuOn)
 {
+    gpuRenderOn = gpuOn;
+
     if (firstTime) {
         startBenchTime = getTicks();
         firstTime = false;
@@ -436,10 +532,11 @@ void runAnimationScript(bool demo, bool gpuOn)
 
     if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
-    if (gpuOn) {
+    if (gpuRenderOn) {
         renderPolygons();
     } else {
-        renderPolygonsSoftware();
+        if (mustClearScreen) memset(buffer, 0, ANIM_SIZE);
+        renderPolygonsSoftware8();
     }
 
     if (!demo) drawTimer();

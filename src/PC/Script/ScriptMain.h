@@ -5,6 +5,8 @@
 #include "InputBuffer.h"
 #include "Modules/Drawing/Drawing.h"
 
+extern int pixelsWritten;
+
 struct QuadStore
 {
 	Point2D p0, p1, p2, p3;

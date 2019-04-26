@@ -31,6 +31,7 @@ static int numQuads = 0;
 static bool mustClearScreen = false;
 static bool endOfAllFrames = false;
 
+int pixelsWritten;
 
 void Script::init(ScreenBuffer *screen)
 {
@@ -221,8 +222,8 @@ static void interpretDescriptorNormal(uchar descriptor, int &polyNumVertices, in
 {
 	colorIndex = (int)((descriptor >> 4) & 15);
 	polyNumVertices = (int)(descriptor & 15);
-	if (nextFrame == 535)
-	std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex << std::endl;
+	//if (nextFrame == 535)
+	//std::cout << "Poly N=" << polyNumVertices << " C=" << colorIndex << std::endl;
 }
 
 static void interpretIndexedMode()
@@ -321,7 +322,9 @@ static void renderScript(ScreenBuffer *screen)
 		//if (mustClearScreen) memset(screen->vram, 0, screen->width * screen->height * (screen->bpp >> 3));
 		memset(screen->vram, 24, screen->width * screen->height * (screen->bpp >> 3));
 
+		pixelsWritten = 0;
 		renderPolygons(screen);
+		std::cout << nextFrame << ") " << ((pixelsWritten * 100) / (1024 * 640)) << '%' << std::endl;
 		drawPalette(screen);
 	}
 }
