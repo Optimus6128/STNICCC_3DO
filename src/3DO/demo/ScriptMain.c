@@ -173,8 +173,11 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	int yMin = y0;
 	int yMax = yMin;
 
+	uchar *dst0;
 	uchar *dst;
-	int x,y;
+	int *edgeL;
+	int *edgeR;
+	int countY;
 
 	if (y1 < yMin) yMin = y1;
 	if (y1 > yMax) yMax = y1;
@@ -191,22 +194,32 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	prepareEdgeListFlat(&p[2], &p[3]);
 	prepareEdgeListFlat(&p[3], &p[0]);
 
-	for (y = yMin; y <= yMax; y++)
+	edgeL = &leftEdgeFlat[yMin];
+	edgeR = &rightEdgeFlat[yMin];
+	dst0 = screen + (yMin << 8);
+
+	countY = yMax - yMin;
+    do
 	{
-		int xl = leftEdgeFlat[y];
-		int xr = rightEdgeFlat[y];
+		int countX;
+		int xl = *edgeL++;
+		int xr = *edgeR++;
 
 		if (xl < 0) xl = 0;
 		if (xr > scrWidth - 1) xr = scrWidth - 1;
 
 		if (xl == xr) ++xr;
+		countX = xr - xl;
 
-        dst = screen + (y << 8) + xl;
-        memset(dst, color, xr-xl);
-	}
+		if (countX < 0) continue;
+
+        dst = dst0 + xl;
+        memset(dst, color, countX);
+        dst0 += 256;
+	}while(countY-- !=0);
 }
 
-void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
+/*void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
 {
 	const int y0 = p[0].y;
 	const int y1 = p[1].y;
@@ -224,7 +237,7 @@ void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
 	int *edgeL;
 	int *edgeR;
 	int x,y;
-	int count;
+	int countY;
 
 	if (y1 < yMin) yMin = y1;
 	if (y1 > yMax) yMax = y1;
@@ -246,26 +259,106 @@ void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
 	edgeL = &leftEdgeFlat[yMin];
 	edgeR = &rightEdgeFlat[yMin];
 	dst0 = screen + (yMin << 7);
-	//for (y = yMin; y <= yMax; y++)
-	count = yMax - yMin;
+
+	countY = yMax - yMin;
 	do
 	{
-		int xl = *edgeL++;//leftEdgeFlat[y];
-		int xr = *edgeR++;//rightEdgeFlat[y];
+	    int countX;
+		int xl = *edgeL++;
+		int xr = *edgeR++;
 
 		if (xl < 0) xl = 0;
 		if (xr > scrWidth - 1) xr = scrWidth - 1;
 
 		if (xl == xr) ++xr;
+        countX = xr - xl;
+
+		if (countX < 0) continue;
 
 		xr >>=1;
 		xl >>=1;
 
         //dst = screen + (y << 7) + xl;
         dst = dst0 + xl;
-        memset(dst, color, xr-xl);
+        //memset(dst, color, xr-xl);
         dst0 += 128;
-	}while(count-- !=0);
+	}while(countY-- !=0);
+}*/
+
+void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
+{
+	const int y0 = p[0].y;
+	const int y1 = p[1].y;
+	const int y2 = p[2].y;
+	const int y3 = p[3].y;
+
+	const int scrWidth = SCREEN_WIDTH;
+	const int scrHeight = SCREEN_HEIGHT;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	uint32 *dst0;
+	uint32 *dst;
+	int *edgeL;
+	int *edgeR;
+	int x;
+	int countY;
+	uint32 col32;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	if (yMin < 0) yMin = 0;
+	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
+	color = (color << 4) | color;
+	col32 = (color << 24) | (color << 16) | (color << 8) | color;
+
+	edgeL = &leftEdgeFlat[yMin];
+	edgeR = &rightEdgeFlat[yMin];
+	dst0 = (uint32*)(screen + (yMin << 7));
+
+	countY = yMax - yMin;
+	do
+	{
+	    int countX;
+		int xl = *edgeL++;
+		int xr = *edgeR++;
+
+		if (xl < 0) xl = 0;
+		if (xr > scrWidth - 1) xr = scrWidth - 1;
+
+		if (xl == xr) ++xr;
+        countX = xr - xl;
+
+		if (countX < 0) continue;
+
+
+
+		xr >>=3;
+		xl >>=3;
+
+        //dst = screen + (y << 7) + xl;
+        dst = dst0 + xl;
+        if (countX < 16) {
+            for (x=xl; x<xr; ++x) {
+                *dst++ = col32;
+            }
+        } else {
+            memset((void*)dst, color, (xr-xl) << 2);
+        }
+        dst0 += 32;
+	}while(countY-- !=0);
 }
 
 void initCCBpolys()
@@ -275,7 +368,6 @@ void initCCBpolys()
 
 	for (i=0; i<MAX_POLYS; ++i) {
 		CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB)-8);	// Create the next offset
-		//CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB));	// Create the next offset
 
 		// Set all the defaults
         CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
