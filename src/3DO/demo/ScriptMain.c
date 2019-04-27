@@ -134,6 +134,58 @@ void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
 	}
 }
 
+/*void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+{
+	const int y0 = p[0].y;
+	const int y1 = p[1].y;
+	const int y2 = p[2].y;
+	const int y3 = p[3].y;
+
+	const int scrWidth = SCREEN_WIDTH;
+	const int scrHeight = SCREEN_HEIGHT;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	uchar *dst;
+	uint32 *dst32;
+	int x,y;
+
+	uint32 c = (color << 24) | (color << 16) | (color << 8) | color;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	if (yMin < 0) yMin = 0;
+	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
+	for (y = yMin; y <= yMax; y++)
+	{
+		int xl = leftEdgeFlat[y];
+		int xr = rightEdgeFlat[y];
+
+		if (xl < 0) xl = 0;
+		if (xr > scrWidth - 1) xr = scrWidth - 1;
+
+		if (xl == xr) ++xr;
+
+        dst = screen + (y << 8) + (xl & ~3);
+        dst32 = (uint32*)dst;
+		for (x = xl; x < xr; x+=4) {
+			*dst32++ = c;
+		}
+	}
+}*/
+
 void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 {
 	const int y0 = p[0].y;
@@ -176,12 +228,9 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 		if (xl == xr) ++xr;
 
         dst = screen + (y << 8) + xl;
-		for (x = xl; x < xr; x+=4) {
-			*dst++ = color;
-		}
+        memset(dst, color, xr-xl);
 	}
 }
-
 
 void initCCBpolys()
 {
