@@ -24,5 +24,6 @@ typedef struct QuadStore
 void runAnimationScript(bool demo, bool gpuOn);
 void initCCBpolys(void);
 void initCCBbuffer(void);
+void initDivs(void);
 
 #endif

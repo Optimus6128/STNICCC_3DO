@@ -127,6 +127,7 @@ static void initStuff()
 
     initCCBpolys();
     initCCBbuffer();
+    initDivs();
 }
 
 static void script()

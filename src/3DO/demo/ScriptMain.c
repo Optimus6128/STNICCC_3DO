@@ -10,7 +10,12 @@
 #define ANIM_HEIGHT 200
 #define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
 
-static unsigned int block64index = 0;
+#define DIV_TAB_SIZE 4096
+#define DIV_TAB_SHIFT 16
+
+static int32 divTab[DIV_TAB_SIZE];
+
+static uint32 block64index = 0;
 
 static uchar *data = &scene1_bin[0];
 
@@ -46,6 +51,19 @@ static uchar buffer[ANIM_SIZE];
 
 static bool gpuRenderOn;
 
+
+
+void initDivs()
+{
+    int i, ii;
+    for (i=0; i<DIV_TAB_SIZE; ++i) {
+        ii = i - DIV_TAB_SIZE / 2;
+        if (i==0) ++ii;
+
+        divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
+    }
+}
+
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
 	int *edgeListToWriteFlat;
@@ -69,7 +87,8 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
         const int x0 = p0->x; const int y0 = p0->y;
         const int x1 = p1->x; const int y1 = p1->y;
 
-        const int dx = INT_TO_FIXED(x1 - x0, FP_BITS) / (y1 - y0);
+        //const int dx = INT_TO_FIXED(x1 - x0, FP_BITS) / (y1 - y0);
+        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
 
         int xp = INT_TO_FIXED(x0, FP_BITS);
         int yp = y0;
@@ -183,6 +202,52 @@ void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
 		for (x = xl; x < xr; x+=4) {
 			*dst32++ = c;
 		}
+	}
+}*/
+
+/*void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+{
+	const int y0 = p[0].y;
+	const int y1 = p[1].y;
+	const int y2 = p[2].y;
+	const int y3 = p[3].y;
+
+	const int scrWidth = SCREEN_WIDTH;
+	const int scrHeight = SCREEN_HEIGHT;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	uchar *dst;
+	int x,y;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	if (yMin < 0) yMin = 0;
+	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
+	for (y = yMin; y <= yMax; y++)
+	{
+		int xl = leftEdgeFlat[y];
+		int xr = rightEdgeFlat[y];
+
+		if (xl < 0) xl = 0;
+		if (xr > scrWidth - 1) xr = scrWidth - 1;
+
+		if (xl == xr) ++xr;
+
+        dst = screen + (y << 8) + xl;
+        memset(dst, color, xr-xl);
 	}
 }*/
 
@@ -323,7 +388,7 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	c->ccb_HDDX = hdx1 - hdx0;
 	c->ccb_HDDY = hdy1 - hdy0;
 
-	c->ccb_PLUTPtr = (void *)((unsigned int)color<<16);
+	c->ccb_PLUTPtr = (void *)((uint32)color<<16);
 }
 
 static void renderPolygonsSoftware8()
