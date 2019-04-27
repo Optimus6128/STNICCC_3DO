@@ -125,9 +125,10 @@ static void initStuff()
 	initFonts();
 	initTimer();
 
-    initCCBpolys();
-    initCCBbuffer();
     initDivs();
+
+    initCCBpolys();
+    initCCBbuffers();
 }
 
 static void script()
