@@ -12,11 +12,13 @@ static bool restart = false;
 static bool PressedA = false;
 static bool PressedB = false;
 static bool PressedC = false;
-static bool PressedAonce = false;
-static bool PressedBonce = false;
-static bool PressedConce = false;
-static bool gpuOn;
-static bool demo;
+
+bool PressedAonce = false;
+bool PressedBonce = false;
+bool PressedConce = false;
+
+bool gpuOn;
+bool demo;
 
 static void quit()
 {
@@ -96,7 +98,7 @@ static void progressScreen()
     // C = bench, soft
 
     if (PressedAonce) { demo = true; gpuOn = true; }
-    if (PressedBonce) { demo = false; gpuOn = true; }
+    if (PressedBonce) { demo = false; gpuOn = false; /*true;*/ }
     if (PressedConce) { demo = false; gpuOn = false; }
 }
 
@@ -133,7 +135,7 @@ static void initStuff()
 
 static void script()
 {
-    runAnimationScript(demo, gpuOn);
+    runAnimationScript();
 }
 
 static void mainLoop()

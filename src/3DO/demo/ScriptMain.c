@@ -51,9 +51,6 @@ static CCB *bufferCel8;
 static uchar buffer4[ANIM_SIZE/2];
 static uchar buffer8[ANIM_SIZE];
 
-static bool gpuRenderOn;
-
-
 
 void initDivs()
 {
@@ -411,7 +408,7 @@ static void addPolygon(int numVertices, int paletteIndex)
     if (paletteIndex < 0) paletteIndex = 0;
 
     color = paletteIndex;
-    if (gpuRenderOn)
+    if (gpuOn)
         color = pal32[paletteIndex];
 
 	if (numVertices < 3 || numVertices > 16) return;
@@ -721,11 +718,9 @@ void drawTimer()
         setFontColor(MakeRGB15(31, 31, 31));
     }
 }
-
-void runAnimationScript(bool demo, bool gpuOn)
+/*
+void runAnimationScript()
 {
-    gpuRenderOn = gpuOn;
-
     if (firstTime) {
         startBenchTime = getTicks();
         firstTime = false;
@@ -735,7 +730,7 @@ void runAnimationScript(bool demo, bool gpuOn)
 
     if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
-    if (gpuRenderOn) {
+    if (gpuOn) {
         renderPolygons();
     } else {
         //if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
@@ -745,6 +740,33 @@ void runAnimationScript(bool demo, bool gpuOn)
     }
 
     if (!demo) drawTimer();
+
+    ++frameNum;
+}
+*/
+
+void runAnimationScript()
+{
+    if (firstTime) {
+        startBenchTime = getTicks();
+        firstTime = false;
+    }
+
+    decodeFrame();
+    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+
+    if (PressedAonce) {
+        renderPolygonsSoftware();
+    } else if (PressedBonce) {
+        if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+        renderPolygonsSoftware8();
+    } else if (PressedConce) {
+        if (mustClearScreen) memset(buffer4, 0, ANIM_SIZE/2);
+        renderPolygonsSoftware4();
+    }
+
+    //if (!demo)
+        drawTimer();
 
     ++frameNum;
 }

@@ -35,4 +35,12 @@
 
 #define BG_COLOR 15
 
+
+extern bool PressedAonce;
+extern bool PressedBonce;
+extern bool PressedConce;
+
+extern bool gpuOn;
+extern bool demo;
+
 #endif
