@@ -98,15 +98,25 @@ static void progressScreen()
     // C = bench, soft
 
     if (PressedAonce) { demo = true; gpuOn = true; }
-    if (PressedBonce) { demo = false; gpuOn = false; /*true;*/ }
+    if (PressedBonce) { demo = false; gpuOn = true; }
     if (PressedConce) { demo = false; gpuOn = false; }
 }
 
-static void clearScreen(ushort color)
+void clearScreen(ushort color)
 {
     // Do it more times to clear all video pages
     int i;
     for (i=0; i<NUM_SCREEN_PAGES; ++i) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+        displayScreen();
+    }
+}
+
+void clearScreenWait(ushort color, int ticks)
+{
+    // Do it more times to clear all video pages
+    int i;
+    for (i=0; i<ticks; ++i) {
         clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
         displayScreen();
     }
@@ -149,6 +159,7 @@ static void mainLoop()
         vsync = true;
         startMusic();
     }
+    if (DEBUG_ON) vsync = true;
 
 	while(!restart)
 	{

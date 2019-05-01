@@ -35,6 +35,8 @@
 
 #define BG_COLOR 15
 
+#define DEBUG_ON false
+
 
 extern bool PressedAonce;
 extern bool PressedBonce;
@@ -42,5 +44,8 @@ extern bool PressedConce;
 
 extern bool gpuOn;
 extern bool demo;
+
+void clearScreen(ushort color);
+void clearScreenWait(ushort color, int ticks);
 
 #endif

@@ -28,6 +28,9 @@ static uchar fontsMap[256];
 static int fps = 0, pframe = 0, nframe = 0, atime = 0;
 static Item timerIOreq;
 
+static int charPosX = 0;
+static int charPosY = 0;
+
 
 void initTimer()
 {
@@ -94,12 +97,38 @@ void drawText(int xtp, int ytp, char *text)
         textCel[i]->ccb_SourcePtr = (CelData*)&fontsBmp[c * FONT_SIZE];
 
         xtp+=8;
+        ++charPosX;
     } while(c!=255 && ++i < MAX_STRING_LENGTH);
 
     --i;
 	textCel[i]->ccb_Flags |= CCB_LAST;
 	drawCels(textCel[0]);
 	textCel[i]->ccb_Flags ^= CCB_LAST;
+}
+
+
+static void newLine()
+{
+    charPosX = 0;
+    charPosY = (charPosY + 1) % (SCREEN_HEIGHT >> 3);
+}
+
+static void print(char *text)
+{
+    drawText(charPosX * FONT_WIDTH, charPosY * FONT_HEIGHT, text);
+}
+
+static void printValue(int value)
+{
+    ++charPosX;
+    drawNumber(charPosX * FONT_WIDTH, charPosY * FONT_HEIGHT, value);
+}
+
+
+void resetCharPos()
+{
+    charPosX = 0;
+    charPosY = 0;
 }
 
 void setFontColor(ushort c)
@@ -200,4 +229,48 @@ void setPal(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1, uint
         g += dg;
         b += db;
     }
+}
+
+void clearCurrentLine()
+{
+    clearScreenWithRect(0, charPosY * FONT_HEIGHT, SCREEN_WIDTH, FONT_HEIGHT, 0);
+}
+
+void printWait(char *text, int ms)
+{
+    int i;
+    int px, py;
+
+    if (!DEBUG_ON) return;
+
+    for (i=0; i<ms; ++i) {
+        if (i < NUM_SCREEN_PAGES) {
+            clearCurrentLine();
+            px = charPosX; py = charPosY;
+            print(text);
+            charPosX = px; charPosY = py;
+        }
+        displayScreen();
+    }
+    newLine();
+}
+
+void printWaitValue(char *text, int value, int ms)
+{
+    int i;
+    int px, py;
+
+    if (!DEBUG_ON) return;
+
+    for (i=0; i<ms; ++i) {
+        if (i < NUM_SCREEN_PAGES) {
+            clearCurrentLine();
+            px = charPosX; py = charPosY;
+            print(text);
+            printValue(value);
+            charPosX = px; charPosY = py;
+        }
+        displayScreen();
+    }
+    newLine();
 }

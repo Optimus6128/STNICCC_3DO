@@ -46,9 +46,7 @@ static bool endOfBench = false;
 static int startBenchTime;
 static int frameNum = 0;
 
-static CCB *bufferCel4;
 static CCB *bufferCel8;
-static uchar buffer4[ANIM_SIZE/2];
 static uchar buffer8[ANIM_SIZE];
 
 
@@ -86,75 +84,19 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
         const int x0 = p0->x; const int y0 = p0->y;
         const int x1 = p1->x; const int y1 = p1->y;
 
-        //const int dx = INT_TO_FIXED(x1 - x0, FP_BITS) / (y1 - y0);
         const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
 
         int xp = INT_TO_FIXED(x0, FP_BITS);
-        //int yp = y0;
         int count = y1 - y0;
 
         edgeListToWriteFlat = &edgeListToWriteFlat[y0];
 
         do
         {
-            //if (yp >= 0 && yp < SCREEN_HEIGHT)
-            //{
-                //edgeListToWriteFlat[yp] = FIXED_TO_INT(xp, FP_BITS);
-                *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
-            //}
+            *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
             xp += dx;
         } while(count-- != 0);
-        //} while (yp++ != y1);
     }
-}
-
-void drawFlatQuad(MyPoint2D *p, ushort color, ushort *screen)
-{
-	const int y0 = p[0].y;
-	const int y1 = p[1].y;
-	const int y2 = p[2].y;
-	const int y3 = p[3].y;
-
-	const int scrWidth = SCREEN_WIDTH;
-	const int scrHeight = SCREEN_HEIGHT;
-
-	int yMin = y0;
-	int yMax = yMin;
-
-	ushort *dst;
-	int x,y;
-
-	if (y1 < yMin) yMin = y1;
-	if (y1 > yMax) yMax = y1;
-	if (y2 < yMin) yMin = y2;
-	if (y2 > yMax) yMax = y2;
-	if (y3 < yMin) yMin = y3;
-	if (y3 > yMax) yMax = y3;
-
-	if (yMin < 0) yMin = 0;
-	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
-
-	prepareEdgeListFlat(&p[0], &p[1]);
-	prepareEdgeListFlat(&p[1], &p[2]);
-	prepareEdgeListFlat(&p[2], &p[3]);
-	prepareEdgeListFlat(&p[3], &p[0]);
-
-	for (y = yMin; y <= yMax; y++)
-	{
-		int xl = leftEdgeFlat[y];
-		int xr = rightEdgeFlat[y];
-
-		if (xl < 0) xl = 0;
-		if (xr > scrWidth - 1) xr = scrWidth - 1;
-
-		if (xl == xr) ++xr;
-
-        dst = screen + (y >> 1) * (scrWidth << 1) + (y & 1) + (xl << 1);
-		for (x = xl; x < xr; ++x) {
-			*dst = color;
-			dst += 2;
-		}
-	}
 }
 
 void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
@@ -170,11 +112,9 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	int yMin = y0;
 	int yMax = yMin;
 
-	uchar *dst0;
 	uchar *dst;
-	int *edgeL;
-	int *edgeR;
-	int countY;
+	int y;
+
 
 	if (y1 < yMin) yMin = y1;
 	if (y1 > yMax) yMax = y1;
@@ -186,176 +126,25 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	if (yMin < 0) yMin = 0;
 	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
 
-	prepareEdgeListFlat(&p[0], &p[1]);
-	prepareEdgeListFlat(&p[1], &p[2]);
-	prepareEdgeListFlat(&p[2], &p[3]);
-	prepareEdgeListFlat(&p[3], &p[0]);
-
-	edgeL = &leftEdgeFlat[yMin];
-	edgeR = &rightEdgeFlat[yMin];
-	dst0 = screen + (yMin << 8);
-
-	countY = yMax - yMin;
-    do
-	{
-		int countX;
-		int xl = *edgeL++;
-		int xr = *edgeR++;
-
-		if (xl < 0) xl = 0;
-		if (xr > scrWidth - 1) xr = scrWidth - 1;
-
-		if (xl == xr) ++xr;
-		countX = xr - xl;
-
-		if (countX < 0) continue;
-
-        dst = dst0 + xl;
-        memset(dst, color, countX);
-        dst0 += 256;
-	}while(countY-- !=0);
-}
-
-/*void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
-{
-	const int y0 = p[0].y;
-	const int y1 = p[1].y;
-	const int y2 = p[2].y;
-	const int y3 = p[3].y;
-
-	const int scrWidth = SCREEN_WIDTH;
-	const int scrHeight = SCREEN_HEIGHT;
-
-	int yMin = y0;
-	int yMax = yMin;
-
-	uchar *dst0;
-	uchar *dst;
-	int *edgeL;
-	int *edgeR;
-	int x,y;
-	int countY;
-
-	if (y1 < yMin) yMin = y1;
-	if (y1 > yMax) yMax = y1;
-	if (y2 < yMin) yMin = y2;
-	if (y2 > yMax) yMax = y2;
-	if (y3 < yMin) yMin = y3;
-	if (y3 > yMax) yMax = y3;
-
-	if (yMin < 0) yMin = 0;
-	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
 
 	prepareEdgeListFlat(&p[0], &p[1]);
 	prepareEdgeListFlat(&p[1], &p[2]);
 	prepareEdgeListFlat(&p[2], &p[3]);
 	prepareEdgeListFlat(&p[3], &p[0]);
 
-	color = (color << 4) | color;
 
-	edgeL = &leftEdgeFlat[yMin];
-	edgeR = &rightEdgeFlat[yMin];
-	dst0 = screen + (yMin << 7);
-
-	countY = yMax - yMin;
-	do
+	for (y = yMin; y <= yMax; y++)
 	{
-	    int countX;
-		int xl = *edgeL++;
-		int xr = *edgeR++;
+		int xl = leftEdgeFlat[y];
+		int xr = rightEdgeFlat[y];
 
 		if (xl < 0) xl = 0;
 		if (xr > scrWidth - 1) xr = scrWidth - 1;
 
 		if (xl == xr) ++xr;
-        countX = xr - xl;
-
-		if (countX < 0) continue;
-
-		xr >>=1;
-		xl >>=1;
-
-        //dst = screen + (y << 7) + xl;
-        dst = dst0 + xl;
-        //memset(dst, color, xr-xl);
-        dst0 += 128;
-	}while(countY-- !=0);
-}*/
-
-void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
-{
-	const int y0 = p[0].y;
-	const int y1 = p[1].y;
-	const int y2 = p[2].y;
-	const int y3 = p[3].y;
-
-	const int scrWidth = SCREEN_WIDTH;
-	const int scrHeight = SCREEN_HEIGHT;
-
-	int yMin = y0;
-	int yMax = yMin;
-
-	uint32 *dst0;
-	uint32 *dst;
-	int *edgeL;
-	int *edgeR;
-	int x;
-	int countY;
-	uint32 col32;
-
-	if (y1 < yMin) yMin = y1;
-	if (y1 > yMax) yMax = y1;
-	if (y2 < yMin) yMin = y2;
-	if (y2 > yMax) yMax = y2;
-	if (y3 < yMin) yMin = y3;
-	if (y3 > yMax) yMax = y3;
-
-	if (yMin < 0) yMin = 0;
-	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
-
-	prepareEdgeListFlat(&p[0], &p[1]);
-	prepareEdgeListFlat(&p[1], &p[2]);
-	prepareEdgeListFlat(&p[2], &p[3]);
-	prepareEdgeListFlat(&p[3], &p[0]);
-
-	color = (color << 4) | color;
-	col32 = (color << 24) | (color << 16) | (color << 8) | color;
-
-	edgeL = &leftEdgeFlat[yMin];
-	edgeR = &rightEdgeFlat[yMin];
-	dst0 = (uint32*)(screen + (yMin << 7));
-
-	countY = yMax - yMin;
-	do
-	{
-	    int countX;
-		int xl = *edgeL++;
-		int xr = *edgeR++;
-
-		if (xl < 0) xl = 0;
-		if (xr > scrWidth - 1) xr = scrWidth - 1;
-
-		if (xl == xr) ++xr;
-        countX = xr - xl;
-
-		if (countX < 0) continue;
-
-
-
-		xr >>=3;
-		xl >>=3;
-
-        //dst = screen + (y << 7) + xl;
-        dst = dst0 + xl;
-        if (countX < 16) {
-            for (x=xl; x<xr; ++x) {
-                *dst++ = col32;
-            }
-        } else {
-            memset((void*)dst, color, (xr-xl) << 2);
-        }
-        dst0 += 32;
-	}while(countY-- !=0);
+        dst = screen + (y << 8) + xl;
+        memset(dst, color, xr-xl);
+	}
 }
 
 void initCCBpolys()
@@ -379,15 +168,6 @@ void initCCBpolys()
 
 void initCCBbuffers()
 {
-    bufferCel4 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 4, CREATECEL_CODED, buffer4);
-    bufferCel4->ccb_PLUTPtr = (PLUTChunk*)pal16;
-
-    bufferCel4->ccb_XPos = animPosX << 16;
-    bufferCel4->ccb_YPos = animPosY << 16;
-
-    bufferCel4->ccb_Flags |= CCB_NOBLK;
-
-
     bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
     bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
@@ -464,55 +244,15 @@ static void renderPolygonsSoftware8()
     static MyPoint2D p[4];
     uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
 
-    if (numQuads==0) return;
-
 	for (i=0; i<numQuads; ++i) {
 		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
 		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
 		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
 		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-        drawFlatQuad8(&p[0], quads[i].c, screen);
+        drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
 	}
 
 	drawCels(bufferCel8);
-}
-
-static void renderPolygonsSoftware4()
-{
-    int i;
-    static MyPoint2D p[4];
-    uchar *screen = (uchar*)bufferCel4->ccb_SourcePtr;
-
-    if (numQuads==0) return;
-
-	for (i=0; i<numQuads; ++i) {
-		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
-		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
-		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
-		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-        drawFlatQuad4(&p[0], quads[i].c, screen);
-	}
-
-	drawCels(bufferCel4);
-}
-
-static void renderPolygonsSoftware()
-{
-    int i;
-    static MyPoint2D p[4];
-    ushort *screen;
-
-    if (numQuads==0) return;
-
-    screen = getVideoramAddress();
-
-	for (i=0; i<numQuads; ++i) {
-		p[0].x = quads[i].p0.x + animPosX; p[0].y = quads[i].p0.y + animPosY;
-		p[1].x = quads[i].p1.x + animPosX; p[1].y = quads[i].p1.y + animPosY;
-		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
-		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
-        drawFlatQuad(&p[0], quads[i].c, screen);
-	}
 }
 
 static void renderPolygons()
@@ -697,7 +437,7 @@ void drawTimer()
     } else {
         min = elapsed / 60000;
         sec = (elapsed / 1000) % 60;
-        mls = elapsed % 100;
+        mls = (elapsed % 1000) / 10;
         avgfps = (frameNum * 1000) / elapsed;
     }
 
@@ -718,7 +458,7 @@ void drawTimer()
         setFontColor(MakeRGB15(31, 31, 31));
     }
 }
-/*
+
 void runAnimationScript()
 {
     if (firstTime) {
@@ -733,40 +473,11 @@ void runAnimationScript()
     if (gpuOn) {
         renderPolygons();
     } else {
-        //if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-        //renderPolygonsSoftware8();
-        if (mustClearScreen) memset(buffer4, 0, ANIM_SIZE/2);
-        renderPolygonsSoftware4();
+        if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+        renderPolygonsSoftware8();
     }
 
     if (!demo) drawTimer();
-
-    ++frameNum;
-}
-*/
-
-void runAnimationScript()
-{
-    if (firstTime) {
-        startBenchTime = getTicks();
-        firstTime = false;
-    }
-
-    decodeFrame();
-    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-
-    if (PressedAonce) {
-        renderPolygonsSoftware();
-    } else if (PressedBonce) {
-        if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-        renderPolygonsSoftware8();
-    } else if (PressedConce) {
-        if (mustClearScreen) memset(buffer4, 0, ANIM_SIZE/2);
-        renderPolygonsSoftware4();
-    }
-
-    //if (!demo)
-        drawTimer();
 
     ++frameNum;
 }
