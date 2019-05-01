@@ -11,7 +11,6 @@ typedef struct MyPoint2D
 typedef struct QuadStore
 {
 	MyPoint2D p0, p1, p2, p3;
-	//unsigned short c;
 	int c;
 }QuadStore;
 
