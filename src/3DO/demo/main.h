@@ -44,6 +44,8 @@ extern bool PressedConce;
 
 extern bool gpuOn;
 extern bool demo;
+extern bool benchTexture;
+extern bool benchScreens;
 
 void clearScreen(ushort color);
 void clearScreenWait(ushort color, int ticks);

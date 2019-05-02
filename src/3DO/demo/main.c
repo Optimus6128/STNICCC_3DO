@@ -12,13 +12,19 @@ static bool restart = false;
 static bool PressedA = false;
 static bool PressedB = false;
 static bool PressedC = false;
+static bool PressedL = false;
+static bool PressedR = false;
 
 bool PressedAonce = false;
 bool PressedBonce = false;
 bool PressedConce = false;
+bool PressedLonce = false;
+bool PressedRonce = false;
 
 bool gpuOn;
 bool demo;
+bool benchTexture;
+bool benchScreens;
 
 static void quit()
 {
@@ -63,6 +69,18 @@ static void processJoystick()
 		PressedC = true;
 	}
 	else PressedC = false;
+
+	if(joybits&ControlLeftShift) {
+		PressedLonce = !PressedL;
+		PressedL = true;
+	}
+	else PressedL = false;
+
+	if(joybits&ControlRightShift) {
+		PressedRonce = !PressedR;
+		PressedR = true;
+	}
+	else PressedR = false;
 }
 
 static void progressScreen()
@@ -70,7 +88,7 @@ static void progressScreen()
     int x,y,yp,c;
     ushort *vram;
 
-    while(!PressedAonce && !PressedBonce && !PressedConce) {
+    while(!PressedAonce && !PressedBonce && !PressedConce && !PressedLonce && !PressedRonce) {
         processJoystick();
         for(y=0; y<SCREEN_HEIGHT; ++y) {
             vram = getVideoramAddress() + (y >> 1) * (2 * SCREEN_WIDTH) + (y & 1);
@@ -86,20 +104,26 @@ static void progressScreen()
                 vram += 2;
             }
         }
-        drawText(16, 80, "Press:");
-        drawText(32, 104, "A for Demo (Hardware & Sound)");
-        drawText(40, 120, "B for Benchmark (Hardware)");
-        drawText(48, 136, "C for Benchmark (Software)");
+        drawText(16, 72, "Press:");
+        drawText(32, 96, "A for Demo (Hardware & Sound)");
+        drawText(40, 112, "B for Benchmark (Hardware)");
+        drawText(48, 128, "C for Benchmark (Software)");
+        drawText(56, 144, "L for Benchmark (Texture)");
+        drawText(64, 160, "R for Benchmark (Frames)");
         displayScreen();
     }
 
     // A = demo, gpu
     // B = bench, gpu
     // C = bench, soft
+    // L = bench, gpu, texture
+    // R = bench, gpu, screens
 
-    if (PressedAonce) { demo = true; gpuOn = true; }
-    if (PressedBonce) { demo = false; gpuOn = true; }
-    if (PressedConce) { demo = false; gpuOn = false; }
+    demo = PressedAonce;
+    gpuOn = !PressedConce;
+    benchTexture = PressedLonce;
+    benchScreens = PressedRonce;
+    restart = false;    // to avoid fading out before the demo starts
 }
 
 void clearScreen(ushort color)
