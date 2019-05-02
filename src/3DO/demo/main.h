@@ -41,6 +41,8 @@
 extern bool PressedAonce;
 extern bool PressedBonce;
 extern bool PressedConce;
+extern bool PressedLonce;
+extern bool PressedRonce;
 
 extern bool gpuOn;
 extern bool demo;

@@ -40,6 +40,7 @@ static const int animPosY = (SCREEN_HEIGHT - ANIM_HEIGHT) / 2 - 8;
 
 static char stbuffer[10];
 static char avgfpsbuffer[16];
+static char texnumbuffer[8];
 
 static bool firstTime = true;
 static bool endOfBench = false;
@@ -49,6 +50,15 @@ static int frameNum = 0;
 static CCB *bufferCel8;
 static uchar buffer8[ANIM_SIZE];
 
+#define NUM_TEXTURES 4
+static int texNum = 0;
+static int texSize[NUM_TEXTURES] = { 16, 32, 64, 128 };
+
+#define NUM_BENCH_FRAMES 8
+static int benchFrame[NUM_BENCH_FRAMES] = { 4, 200, 500, 900, 1000, 1050, 1400, 1700 };
+static int benchFrameFps[NUM_BENCH_FRAMES];
+static int benchFrameIndex = 0;
+static CCB *lastQuadCCB;
 
 void initDivs()
 {
@@ -273,6 +283,7 @@ static void renderPolygons()
 		++quadCCB;
 	}
 	--quadCCB;
+	lastQuadCCB = quadCCB;
 	quadCCB->ccb_Flags |= CCB_LAST;
 	drawCels(polys);
 	quadCCB->ccb_Flags ^= CCB_LAST;
@@ -459,6 +470,49 @@ void drawTimer()
     }
 }
 
+static void benchTextureControls()
+{
+    if (PressedLonce) {
+        --texNum;
+        if (texNum < 0) texNum = NUM_TEXTURES - 1;
+    }
+    if (PressedRonce) {
+        ++texNum;
+        if (texNum==NUM_TEXTURES) texNum = 0;
+    }
+
+    sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
+    clearScreenWithRect(0, SCREEN_HEIGHT - 8, 64, 8, BG_COLOR);
+    drawText(0, SCREEN_HEIGHT - 8, texnumbuffer);
+}
+
+static void benchFrameEndScreen()
+{
+    while(true) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 15 << 5);
+        displayScreen();
+    }
+}
+
+static void benchFrameLoop()
+{
+    const int benchFrameRepeats = 2048;
+    int i;
+
+    if (benchFrame[benchFrameIndex] == frameNum) {
+        for (i=0; i<benchFrameRepeats; ++i) {
+            lastQuadCCB->ccb_Flags |= CCB_LAST;
+            drawCels(polys);
+            lastQuadCCB->ccb_Flags ^= CCB_LAST;
+
+            showFPS();
+            displayScreen();
+        }
+        ++benchFrameIndex;
+    }
+    if (benchFrameIndex==NUM_BENCH_FRAMES) benchFrameEndScreen();
+}
+
 void runAnimationScript()
 {
     if (firstTime) {
@@ -477,7 +531,11 @@ void runAnimationScript()
         renderPolygonsSoftware8();
     }
 
-    if (!demo) drawTimer();
+    if (!demo && !benchScreens) drawTimer();
+
+    if (benchTexture) benchTextureControls();
+
+    if (benchScreens) benchFrameLoop();
 
     ++frameNum;
 }

@@ -123,7 +123,11 @@ static void progressScreen()
     gpuOn = !PressedConce;
     benchTexture = PressedLonce;
     benchScreens = PressedRonce;
-    restart = false;    // to avoid fading out before the demo starts
+
+    // clean up some keys before start
+    PressedLonce = false;
+    PressedRonce = false;
+    restart = false;
 }
 
 void clearScreen(ushort color)
