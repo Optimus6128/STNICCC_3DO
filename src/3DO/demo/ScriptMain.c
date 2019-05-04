@@ -61,6 +61,18 @@ static int benchFrameFps[NUM_BENCH_FRAMES][NUM_BENCH_KINDS];
 static int benchFrameIndex = 0;
 static CCB *lastQuadCCB;
 
+static int shr[257]; // ugly way to get precalced fast right shift for division with power of two numbers
+
+
+static int getShr(int n)
+{
+    int b = -1;
+    do{
+        b++;
+    }while((n>>=1)!=0);
+    return b;
+}
+
 void initDivs()
 {
     int i, ii;
@@ -69,6 +81,11 @@ void initDivs()
         if (i==0) ++ii;
 
         divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
+    }
+
+    for (i=1; i<=256; i++)
+    {
+        shr[i] = getShr(i);
     }
 }
 
@@ -247,6 +264,44 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	c->ccb_HDDY = hdy1 - hdy0;
 
 	c->ccb_PLUTPtr = (void *)((uint32)color<<16);
+}
+
+void mapCelToTexturedQuad(CCB *c, MyPoint2D *q)
+{
+    const int shrWidth = shr[c->ccb_Width];
+    const int shrHeight = shr[c->ccb_Height];
+
+    const int q0x = q[0].x;
+    const int q0y = q[0].y;
+    const int q1x = q[1].x;
+    const int q1y = q[1].y;
+    const int q2x = q[2].x;
+    const int q2y = q[2].y;
+    const int q3x = q[3].x;
+    const int q3y = q[3].y;
+
+	const int ptX0 = q1x - q0x;
+	const int ptY0 = q1y - q0y;
+	const int ptX1 = q2x - q3x;
+	const int ptY1 = q2y - q3y;
+	const int ptX2 = q3x - q0x;
+	const int ptY2 = q3y - q0y;
+
+	const int hdx0 = (ptX0 << 20) >> shrWidth;
+	const int hdy0 = (ptY0 << 20) >> shrWidth;
+	const int hdx1 = (ptX1 << 20) >> shrWidth;
+	const int hdy1 = (ptY1 << 20) >> shrWidth;
+
+	c->ccb_XPos = q0x << 16;
+	c->ccb_YPos = q0y << 16;
+
+	c->ccb_HDX = hdx0;
+	c->ccb_HDY = hdy0;
+    c->ccb_VDX = (ptX2 << 16) >> shrHeight;
+	c->ccb_VDY = (ptY2 << 16) >> shrHeight;
+
+	c->ccb_HDDX = (hdx1 - hdx0) >> shrHeight;
+	c->ccb_HDDY = (hdy1 - hdy0) >> shrHeight;
 }
 
 static void renderPolygonsSoftware8()
