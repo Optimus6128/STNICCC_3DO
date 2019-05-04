@@ -41,6 +41,7 @@ void drawCels(CCB *cels);
 
 void fadeToBlack(void);
 void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color);
+void clearAllScreens(ushort color);
 
 ushort *getVideoramAddress(void);
 

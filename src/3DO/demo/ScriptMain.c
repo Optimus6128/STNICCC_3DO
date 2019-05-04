@@ -50,13 +50,14 @@ static int frameNum = 0;
 static CCB *bufferCel8;
 static uchar buffer8[ANIM_SIZE];
 
-#define NUM_TEXTURES 4
+#define NUM_BENCH_TEXTURES 4
+#define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
 static int texNum = 0;
-static int texSize[NUM_TEXTURES] = { 16, 32, 64, 128 };
+static int texSize[NUM_BENCH_TEXTURES] = { 16, 32, 64, 128 };
 
 #define NUM_BENCH_FRAMES 8
-static int benchFrame[NUM_BENCH_FRAMES] = { 4, 200, 500, 900, 1000, 1050, 1400, 1700 };
-static int benchFrameFps[NUM_BENCH_FRAMES];
+static int benchFrame[NUM_BENCH_FRAMES] = { 8, 200, 500, 900, 1000, 1050, 1400, 1700 };
+static int benchFrameFps[NUM_BENCH_FRAMES][NUM_BENCH_KINDS];
 static int benchFrameIndex = 0;
 static CCB *lastQuadCCB;
 
@@ -474,11 +475,11 @@ static void benchTextureControls()
 {
     if (PressedLonce) {
         --texNum;
-        if (texNum < 0) texNum = NUM_TEXTURES - 1;
+        if (texNum < 0) texNum = NUM_BENCH_TEXTURES - 1;
     }
     if (PressedRonce) {
         ++texNum;
-        if (texNum==NUM_TEXTURES) texNum = 0;
+        if (texNum==NUM_BENCH_TEXTURES) texNum = 0;
     }
 
     sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
@@ -496,21 +497,36 @@ static void benchFrameEndScreen()
 
 static void benchFrameLoop()
 {
-    const int benchFrameRepeats = 2048;
     int i;
+    const int benchFrameTicks = 1000;
+
+    if (endOfBench) benchFrameEndScreen();
+
+    if (benchFrameIndex==NUM_BENCH_FRAMES) return;
 
     if (benchFrame[benchFrameIndex] == frameNum) {
-        for (i=0; i<benchFrameRepeats; ++i) {
-            lastQuadCCB->ccb_Flags |= CCB_LAST;
-            drawCels(polys);
-            lastQuadCCB->ccb_Flags ^= CCB_LAST;
+        for (i=0; i<NUM_BENCH_KINDS; ++i) {
+            int startTicks = getTicks();
+            int benchRepeatsNum = 0;
 
-            showFPS();
-            displayScreen();
+            clearAllScreens(rand() & 32767);
+            do {
+                if (benchRepeatsNum < NUM_SCREEN_PAGES) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+
+                lastQuadCCB->ccb_Flags |= CCB_LAST;
+                drawCels(polys);
+                lastQuadCCB->ccb_Flags ^= CCB_LAST;
+
+                showFPS();
+                displayScreen();
+
+                ++benchRepeatsNum;
+            } while(getTicks() - startTicks <= benchFrameTicks);
+
+            benchFrameFps[benchFrameIndex][i] = (benchRepeatsNum * 1000) / benchFrameTicks;
         }
         ++benchFrameIndex;
     }
-    if (benchFrameIndex==NUM_BENCH_FRAMES) benchFrameEndScreen();
 }
 
 void runAnimationScript()

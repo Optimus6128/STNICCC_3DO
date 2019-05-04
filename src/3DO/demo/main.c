@@ -130,26 +130,6 @@ static void progressScreen()
     restart = false;
 }
 
-void clearScreen(ushort color)
-{
-    // Do it more times to clear all video pages
-    int i;
-    for (i=0; i<NUM_SCREEN_PAGES; ++i) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-        displayScreen();
-    }
-}
-
-void clearScreenWait(ushort color, int ticks)
-{
-    // Do it more times to clear all video pages
-    int i;
-    for (i=0; i<ticks; ++i) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
-        displayScreen();
-    }
-}
-
 static void initSystem()
 {
 	OpenMathFolio();
@@ -180,7 +160,7 @@ static void mainLoop()
 {
     progressScreen();
 
-    clearScreen(BG_COLOR);
+    clearAllScreens(BG_COLOR);
 
     vsync = false;
     if (demo) {

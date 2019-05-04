@@ -93,3 +93,13 @@ void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int
 
 	drawCels(&clearCCB);
 }
+
+void clearAllScreens(ushort color)
+{
+    // Do it more times to clear all video pages
+    int i;
+    for (i=0; i<NUM_SCREEN_PAGES; ++i) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
+        displayScreen();
+    }
+}
