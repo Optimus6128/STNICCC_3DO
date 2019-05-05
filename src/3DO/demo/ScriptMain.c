@@ -27,6 +27,7 @@ static int pal32[ATARI_PAL_NUM];
 static MyPoint2D pt[MAX_POLYGON_PTS];
 
 static ushort texPals[ATARI_PAL_NUM][32];
+static ushort fuckPal[32];
 
 static QuadStore quads[MAX_POLYS];
 static QuadStore *quadPtr;
@@ -36,6 +37,8 @@ static int leftEdgeFlat[SCREEN_HEIGHT];
 static int rightEdgeFlat[SCREEN_HEIGHT];
 
 static CCB *polys[MAX_POLYS];
+static CCB polysFlat[MAX_POLYS];
+static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static bool mustClearScreen = false;
@@ -58,8 +61,9 @@ static uchar buffer8[ANIM_SIZE];
 #define NUM_BENCH_TEXTURES 4
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
 static int texNum = 0;
-static int texSize[NUM_BENCH_TEXTURES] = { 16, 32, 64, 128 };
-static ushort *texBuffer[NUM_BENCH_TEXTURES];
+static int texSize[NUM_BENCH_TEXTURES] =    { 16, 32, 64, 128 };
+static int texShr[NUM_BENCH_TEXTURES] =     { 4,  5,  6,  7};
+static uchar *texBuffer[NUM_BENCH_TEXTURES];
 
 static int benchKind = 0;   // 0 = FLAT, 1-4 = TEXTURED (texNum = benchKind-1)
 
@@ -69,17 +73,6 @@ static int benchFrameFps[NUM_BENCH_FRAMES][NUM_BENCH_KINDS];
 static int benchFrameIndex = 0;
 static CCB *lastQuadCCB;
 
-static int shr[257]; // ugly way to get precalced fast right shift for division with power of two numbers
-
-
-static int getShr(int n)
-{
-    int b = -1;
-    do{
-        b++;
-    }while((n>>=1)!=0);
-    return b;
-}
 
 void initDivs()
 {
@@ -89,11 +82,6 @@ void initDivs()
         if (i==0) ++ii;
 
         divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
-    }
-
-    for (i=1; i<=256; i++)
-    {
-        shr[i] = getShr(i);
     }
 }
 
@@ -190,13 +178,13 @@ void initBenchTextures()
     for (n=0; n<NUM_BENCH_TEXTURES; ++n) {
         const int width = texSize[n];
         const int height = texSize[n];
-        texBuffer[n] = (ushort*)malloc(width * height * sizeof(ushort));
+        texBuffer[n] = (uchar*)malloc(width * height * sizeof(uchar));
 
         //procgen here
         i = 0;
         for (y=0; y<height; ++y) {
             for (x=0; x<width; ++x) {
-                texBuffer[n][i++] = x^y;
+                texBuffer[n][i++] = (x^y) & 31;
             }
         }
     }
@@ -204,55 +192,48 @@ void initBenchTextures()
     for (n=0; n<ATARI_PAL_NUM; ++n) {
         setPal(0, 31, 0, 0, 0, 255, 255, 255, texPals[n]);
     }
-}
-
-void initCCBpolysPointers()
-{
-	int i;
-    for (i=0; i<MAX_POLYS; ++i) {
-        polys[i] = CreateCel(1, 1, 16, CREATECEL_UNCODED, null);
-        //(CCB*)malloc(sizeof(CCB));
-    }
+    setPal(0, 31, 64, 64, 64, 255, 192, 128, fuckPal);
 }
 
 void initCCBpolysFlat()
 {
-	CCB *CCBPtr = polys[0];
+	CCB *CCBPtr;
 	int i;
 
+	CCBPtr = &polysFlat[0];
 	for (i=0; i<MAX_POLYS; ++i) {
-
 		CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB)-8);	// Create the next offset
 
-		// Set all the defaults
         CCBPtr->ccb_Flags = CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK;
         CCBPtr->ccb_PIXC = 0x1F00;
         CCBPtr->ccb_PRE0 = 0x40000016;
         CCBPtr->ccb_PRE1 = 0x03FF1000;
         CCBPtr->ccb_SourcePtr = (CelData*)0;
 
-		++CCBPtr;
+        polys[i] = CCBPtr++;
 	}
 }
 
 void initCCBPolysTexture()
 {
+	CCB *CCBPtr;
     int i;
+    const int texWidth = texSize[texNum];
+    const int texHeight = texWidth;
 
+    CCBPtr = &polysTexture[0];
     for (i=0; i<MAX_POLYS; ++i) {
-            if (polys[i])
-                DeleteCel(polys[i]);
+		CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB)-8);	// Create the next offset
+
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV;
+        CCBPtr->ccb_PIXC = 0x1F00;
+        CCBPtr->ccb_PRE0 = 0x00000005 | ((texHeight - 1) << 6);
+        CCBPtr->ccb_PRE1 = (((texWidth >> 1) - 2) << 16) | (texWidth - 1);
+
+        CCBPtr->ccb_SourcePtr = (CelData*)texBuffer[texNum];
+
+        polys[i] = CCBPtr++;
     }
-
-    for (i=0; i<MAX_POLYS; ++i) {
-
-        polys[i] = CreateCel(texSize[texNum], texSize[texNum], 16, CREATECEL_UNCODED, null);
-
-        polys[i]->ccb_SourcePtr = (CelData*)texBuffer[texNum];
-
-        if (i!=0) LinkCel(polys[i-1], polys[i]);
-    }
-	polys[i-1]->ccb_Flags |= CCB_LAST;
 }
 
 void initCCBbuffers()
@@ -329,8 +310,8 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 
 void mapCelToTexturedQuad(CCB *c, MyPoint2D *q, int color)
 {
-    const int shrWidth = shr[c->ccb_Width];
-    const int shrHeight = shr[c->ccb_Height];
+    const int shrWidth = texShr[texNum];
+    const int shrHeight = texShr[texNum];
 
     const int q0x = q[0].x;
     const int q0y = q[0].y;
@@ -404,7 +385,16 @@ static void renderPolygons()
             mapCelToTexturedQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
 	}
-	--quadCCB;
+	//--quadCCB;
+
+    //p[0].x = 100; p[0].y = 80;
+    //p[1].x = 200; p[1].y = 100;
+    //p[2].x = 150; p[2].y = 200;
+    //p[3].x = 120; p[3].y = 180;
+    //mapCelToFlatQuad(quadCCB, p, (24 << 10) | (15 << 5));
+    //mapCelToTexturedQuad(quadCCB, p, rand() & 31);
+
+
 	lastQuadCCB = quadCCB;
 	quadCCB->ccb_Flags |= CCB_LAST;
 	drawCels(polys[0]);
@@ -436,7 +426,7 @@ static void interpretPaletteData()
 			pal32[palNum] = (int)c;
 			pal16[palNum] = c;
 			if (benchTexture || benchScreens) {
-                setPal(0,31, 0,0,0, r<<3, g<<3, b<<3, texPals[palNum]);
+                setPal(0,31, 0,0,0, r<<5, g<<5, b<<5, texPals[palNum]);
 			}
 		}
 		bitmask <<= 1;
@@ -608,7 +598,6 @@ static void benchTextureControls()
         if (texNum==NUM_BENCH_TEXTURES) texNum = 0;
         initCCBPolysTexture();
     }
-
     sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
     clearScreenWithRect(0, SCREEN_HEIGHT - 8, 64, 8, BG_COLOR);
     drawText(0, SCREEN_HEIGHT - 8, texnumbuffer);
@@ -667,6 +656,8 @@ static void benchFrameLoop()
 
 void runAnimationScript()
 {
+    MyPoint2D q[4];
+
     if (firstTime) {
         startBenchTime = getTicks();
         firstTime = false;
@@ -674,7 +665,7 @@ void runAnimationScript()
 
     decodeFrame();
 
-    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 31<<15);
 
     if (gpuOn) {
         renderPolygons();

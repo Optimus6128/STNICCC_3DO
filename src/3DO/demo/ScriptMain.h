@@ -23,7 +23,6 @@ typedef struct QuadStore
 
 void runAnimationScript(void);
 void initCCBpolysFlat(void);
-void initCCBpolysPointers(void);
 void initCCBPolysTexture(void);
 void initBenchTextures(void);
 void initCCBbuffers(void);

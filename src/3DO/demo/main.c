@@ -149,7 +149,6 @@ static void initStuff()
 
     initCCBbuffers();
     initBenchTextures();
-    initCCBpolysPointers();
 }
 
 static void script()
@@ -167,14 +166,15 @@ static void mainLoop()
         initCCBPolysTexture();
     else
         initCCBpolysFlat();
-clearAllScreens(31<<10);
+
     vsync = false;
     if (demo) {
         vsync = true;
-        startMusic();
+        //startMusic();
     }
     if (DEBUG_ON) vsync = true;
-clearAllScreens(31<<5);
+
+vsync = true;
 	while(!restart)
 	{
 	    processJoystick();
@@ -182,7 +182,6 @@ clearAllScreens(31<<5);
 		script();
 
         showFPS();
-        //clearAllScreens(rand() & 32767);
 		displayScreen();
 	}
 
