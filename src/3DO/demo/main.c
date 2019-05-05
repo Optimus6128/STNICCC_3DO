@@ -83,7 +83,7 @@ static void processJoystick()
 	else PressedR = false;
 }
 
-static void progressScreen()
+static void menuScreen()
 {
     int x,y,yp,c;
     ushort *vram;
@@ -147,8 +147,9 @@ static void initStuff()
 
     initDivs();
 
-    initCCBpolys();
     initCCBbuffers();
+    initBenchTextures();
+    initCCBpolysPointers();
 }
 
 static void script()
@@ -158,17 +159,22 @@ static void script()
 
 static void mainLoop()
 {
-    progressScreen();
+    menuScreen();
 
     clearAllScreens(BG_COLOR);
 
+    if (benchTexture)
+        initCCBPolysTexture();
+    else
+        initCCBpolysFlat();
+clearAllScreens(31<<10);
     vsync = false;
     if (demo) {
         vsync = true;
         startMusic();
     }
     if (DEBUG_ON) vsync = true;
-
+clearAllScreens(31<<5);
 	while(!restart)
 	{
 	    processJoystick();
@@ -176,7 +182,7 @@ static void mainLoop()
 		script();
 
         showFPS();
-
+        //clearAllScreens(rand() & 32767);
 		displayScreen();
 	}
 

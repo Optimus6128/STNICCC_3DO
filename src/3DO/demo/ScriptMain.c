@@ -13,15 +13,20 @@
 #define DIV_TAB_SIZE 4096
 #define DIV_TAB_SHIFT 16
 
+#define ATARI_PAL_NUM 16
+#define MAX_POLYGON_PTS 16
+
 static int32 divTab[DIV_TAB_SIZE];
 
 static uint32 block64index = 0;
 
 static uchar *data = &scene1_bin[0];
 
-static ushort pal16[16];
-static int pal32[16];
-static MyPoint2D pt[16];
+static ushort pal16[ATARI_PAL_NUM];
+static int pal32[ATARI_PAL_NUM];
+static MyPoint2D pt[MAX_POLYGON_PTS];
+
+static ushort texPals[ATARI_PAL_NUM][32];
 
 static QuadStore quads[MAX_POLYS];
 static QuadStore *quadPtr;
@@ -30,7 +35,7 @@ static int numQuads = 0;
 static int leftEdgeFlat[SCREEN_HEIGHT];
 static int rightEdgeFlat[SCREEN_HEIGHT];
 
-static CCB polys[MAX_POLYS];
+static CCB *polys[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static bool mustClearScreen = false;
@@ -54,6 +59,9 @@ static uchar buffer8[ANIM_SIZE];
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
 static int texNum = 0;
 static int texSize[NUM_BENCH_TEXTURES] = { 16, 32, 64, 128 };
+static ushort *texBuffer[NUM_BENCH_TEXTURES];
+
+static int benchKind = 0;   // 0 = FLAT, 1-4 = TEXTURED (texNum = benchKind-1)
 
 #define NUM_BENCH_FRAMES 8
 static int benchFrame[NUM_BENCH_FRAMES] = { 8, 200, 500, 900, 1000, 1050, 1400, 1700 };
@@ -175,12 +183,45 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	}
 }
 
-void initCCBpolys()
+void initBenchTextures()
 {
-	CCB *CCBPtr = &polys[0];
+    int x,y,i,n;
+
+    for (n=0; n<NUM_BENCH_TEXTURES; ++n) {
+        const int width = texSize[n];
+        const int height = texSize[n];
+        texBuffer[n] = (ushort*)malloc(width * height * sizeof(ushort));
+
+        //procgen here
+        i = 0;
+        for (y=0; y<height; ++y) {
+            for (x=0; x<width; ++x) {
+                texBuffer[n][i++] = x^y;
+            }
+        }
+    }
+
+    for (n=0; n<ATARI_PAL_NUM; ++n) {
+        setPal(0, 31, 0, 0, 0, 255, 255, 255, texPals[n]);
+    }
+}
+
+void initCCBpolysPointers()
+{
+	int i;
+    for (i=0; i<MAX_POLYS; ++i) {
+        polys[i] = CreateCel(1, 1, 16, CREATECEL_UNCODED, null);
+        //(CCB*)malloc(sizeof(CCB));
+    }
+}
+
+void initCCBpolysFlat()
+{
+	CCB *CCBPtr = polys[0];
 	int i;
 
 	for (i=0; i<MAX_POLYS; ++i) {
+
 		CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB)-8);	// Create the next offset
 
 		// Set all the defaults
@@ -192,6 +233,26 @@ void initCCBpolys()
 
 		++CCBPtr;
 	}
+}
+
+void initCCBPolysTexture()
+{
+    int i;
+
+    for (i=0; i<MAX_POLYS; ++i) {
+            if (polys[i])
+                DeleteCel(polys[i]);
+    }
+
+    for (i=0; i<MAX_POLYS; ++i) {
+
+        polys[i] = CreateCel(texSize[texNum], texSize[texNum], 16, CREATECEL_UNCODED, null);
+
+        polys[i]->ccb_SourcePtr = (CelData*)texBuffer[texNum];
+
+        if (i!=0) LinkCel(polys[i-1], polys[i]);
+    }
+	polys[i-1]->ccb_Flags |= CCB_LAST;
 }
 
 void initCCBbuffers()
@@ -216,7 +277,7 @@ static void addPolygon(int numVertices, int paletteIndex)
     if (paletteIndex < 0) paletteIndex = 0;
 
     color = paletteIndex;
-    if (gpuOn)
+    if (gpuOn && benchKind==0)
         color = pal32[paletteIndex];
 
 	if (numVertices < 3 || numVertices > 16) return;
@@ -266,7 +327,7 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	c->ccb_PLUTPtr = (void *)((uint32)color<<16);
 }
 
-void mapCelToTexturedQuad(CCB *c, MyPoint2D *q)
+void mapCelToTexturedQuad(CCB *c, MyPoint2D *q, int color)
 {
     const int shrWidth = shr[c->ccb_Width];
     const int shrHeight = shr[c->ccb_Height];
@@ -302,6 +363,8 @@ void mapCelToTexturedQuad(CCB *c, MyPoint2D *q)
 
 	c->ccb_HDDX = (hdx1 - hdx0) >> shrHeight;
 	c->ccb_HDDY = (hdy1 - hdy0) >> shrHeight;
+
+	c->ccb_PLUTPtr = (PLUTChunk*)texPals[color];
 }
 
 static void renderPolygonsSoftware8()
@@ -326,7 +389,7 @@ static void renderPolygons()
     int i;
     static MyPoint2D p[4];
 
-    CCB *quadCCB = &polys[0];
+    CCB *quadCCB = polys[0];
 
     if (numQuads==0) return;
 
@@ -335,13 +398,16 @@ static void renderPolygons()
 		p[1].x = quads[i].p1.x + animPosX; p[1].y = quads[i].p1.y + animPosY;
 		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
 		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
-		mapCelToFlatQuad(quadCCB, p, quads[i].c);
+		if (benchKind == 0)
+            mapCelToFlatQuad(quadCCB, p, quads[i].c);
+        else
+            mapCelToTexturedQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
 	}
 	--quadCCB;
 	lastQuadCCB = quadCCB;
 	quadCCB->ccb_Flags |= CCB_LAST;
-	drawCels(polys);
+	drawCels(polys[0]);
 	quadCCB->ccb_Flags ^= CCB_LAST;
 }
 
@@ -369,6 +435,9 @@ static void interpretPaletteData()
 
 			pal32[palNum] = (int)c;
 			pal16[palNum] = c;
+			if (benchTexture || benchScreens) {
+                setPal(0,31, 0,0,0, r<<3, g<<3, b<<3, texPals[palNum]);
+			}
 		}
 		bitmask <<= 1;
 	}
@@ -528,13 +597,16 @@ void drawTimer()
 
 static void benchTextureControls()
 {
+    benchKind = 1;  // to force texture pal in this mode
     if (PressedLonce) {
         --texNum;
         if (texNum < 0) texNum = NUM_BENCH_TEXTURES - 1;
+        initCCBPolysTexture();
     }
     if (PressedRonce) {
         ++texNum;
         if (texNum==NUM_BENCH_TEXTURES) texNum = 0;
+        initCCBPolysTexture();
     }
 
     sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
@@ -564,12 +636,20 @@ static void benchFrameLoop()
             int startTicks = getTicks();
             int benchRepeatsNum = 0;
 
+            benchKind = i;
+            if (benchKind == 0) {
+                initCCBpolysFlat();
+            } else {
+                texNum = benchKind - 1;
+                initCCBPolysTexture();
+            }
+
             clearAllScreens(rand() & 32767);
             do {
                 if (benchRepeatsNum < NUM_SCREEN_PAGES) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
                 lastQuadCCB->ccb_Flags |= CCB_LAST;
-                drawCels(polys);
+                drawCels(polys[0]);
                 lastQuadCCB->ccb_Flags ^= CCB_LAST;
 
                 showFPS();
@@ -580,6 +660,7 @@ static void benchFrameLoop()
 
             benchFrameFps[benchFrameIndex][i] = (benchRepeatsNum * 1000) / benchFrameTicks;
         }
+        benchKind = 0;
         ++benchFrameIndex;
     }
 }
