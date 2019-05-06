@@ -153,7 +153,7 @@ void showFPS()
     const int posX = 0;
     const int posY = 0;
 
-    clearScreenWithRect(posX, posY, 24, 8, BG_COLOR);
+    clearScreenWithRect(posX, posY, 32, 8, BG_COLOR);
 
     if (getTicks() - atime >= 1000)
     {

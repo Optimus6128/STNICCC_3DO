@@ -27,7 +27,6 @@ static int pal32[ATARI_PAL_NUM];
 static MyPoint2D pt[MAX_POLYGON_PTS];
 
 static ushort texPals[ATARI_PAL_NUM][32];
-static ushort fuckPal[32];
 
 static QuadStore quads[MAX_POLYS];
 static QuadStore *quadPtr;
@@ -58,17 +57,17 @@ static int frameNum = 0;
 static CCB *bufferCel8;
 static uchar buffer8[ANIM_SIZE];
 
-#define NUM_BENCH_TEXTURES 7
+#define NUM_BENCH_TEXTURES 4
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
 static int texNum = 2;
-static int texSize[NUM_BENCH_TEXTURES] =    { 8, 16, 32, 64, 128, 256, 512 };
-static int texShr[NUM_BENCH_TEXTURES] =     { 3, 4,  5,  6,  7,   8,   9};
+static int texSize[NUM_BENCH_TEXTURES] =    { 16, 32, 64, 128 };
+static int texShr[NUM_BENCH_TEXTURES] =     { 4,  5,  6,  7 };
 static uchar *texBuffer[NUM_BENCH_TEXTURES];
 
 static int benchKind = 0;   // 0 = FLAT, 1-4 = TEXTURED (texNum = benchKind-1)
 
 #define NUM_BENCH_FRAMES 8
-static int benchFrame[NUM_BENCH_FRAMES] = { 8, 200, 500, 900, 1000, 1050, 1400, 1700 };
+static int benchFrame[NUM_BENCH_FRAMES] = { 8, 200, 500, 900, 1400, 1640 };
 static int benchFrameFps[NUM_BENCH_FRAMES][NUM_BENCH_KINDS];
 static int benchFrameIndex = 0;
 static CCB *lastQuadCCB;
@@ -188,11 +187,6 @@ void initBenchTextures()
             }
         }
     }
-
-    for (n=0; n<ATARI_PAL_NUM; ++n) {
-        setPal(0, 31, 0, 0, 0, 255, 255, 255, texPals[n]);
-    }
-    setPal(0, 31, 64, 64, 64, 255, 192, 128, fuckPal);
 }
 
 void initCCBpolysFlat()
@@ -258,8 +252,8 @@ static void addPolygon(int numVertices, int paletteIndex)
     if (paletteIndex < 0) paletteIndex = 0;
 
     color = paletteIndex;
-    if (gpuOn && benchKind==0)
-        color = pal32[paletteIndex];
+    //if (gpuOn && benchKind==0)
+    //    color = pal32[paletteIndex];
 
 	if (numVertices < 3 || numVertices > 16) return;
 
@@ -369,7 +363,6 @@ static void renderPolygons()
 {
     int i;
     static MyPoint2D p[4];
-
     CCB *quadCCB = polys[0];
 
     if (numQuads==0) return;
@@ -380,19 +373,12 @@ static void renderPolygons()
 		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
 		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
 		if (benchKind == 0)
-            mapCelToFlatQuad(quadCCB, p, quads[i].c);
+            mapCelToFlatQuad(quadCCB, p, pal32[quads[i].c]);
         else
             mapCelToTexturedQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
 	}
 	--quadCCB;
-
-    //p[0].x = 100; p[0].y = 80;
-    //p[1].x = 200; p[1].y = 100;
-    //p[2].x = 150; p[2].y = 200;
-    //p[3].x = 120; p[3].y = 180;
-    //mapCelToTexturedQuad(quadCCB, p, 4);
-
 
 	lastQuadCCB = quadCCB;
 	quadCCB->ccb_Flags |= CCB_LAST;
@@ -616,7 +602,7 @@ static void benchFrameEndScreen()
 static void benchFrameLoop()
 {
     int i;
-    const int benchFrameTicks = 1000;
+    const int benchFrameTicks = 2000;
 
     if (endOfBench) benchFrameEndScreen();
 
@@ -633,9 +619,10 @@ static void benchFrameLoop()
             } else {
                 texNum = benchKind - 1;
                 initCCBPolysTexture();
+                renderPolygons();
             }
 
-            clearAllScreens(rand() & 32767);
+            clearAllScreens(0);
             do {
                 if (benchRepeatsNum < NUM_SCREEN_PAGES) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
@@ -652,15 +639,14 @@ static void benchFrameLoop()
             benchFrameFps[benchFrameIndex][i] = (benchRepeatsNum * 1000) / benchFrameTicks;
         }
         benchKind = 0;
+        initCCBpolysFlat();
+        renderPolygons();
         ++benchFrameIndex;
     }
 }
 
 void runAnimationScript()
 {
-    MyPoint2D q[4];
-    int i;
-
     if (firstTime) {
         startBenchTime = getTicks();
         firstTime = false;
@@ -668,11 +654,11 @@ void runAnimationScript()
 
     if (benchTexture) benchTextureControls();
 
-    if (benchScreens) benchFrameLoop();
-
     decodeFrame();
 
-    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 31<<15);
+    if (benchScreens) benchFrameLoop();
+
+    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
     if (gpuOn) {
         renderPolygons();
