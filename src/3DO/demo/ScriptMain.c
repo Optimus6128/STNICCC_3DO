@@ -58,11 +58,11 @@ static int frameNum = 0;
 static CCB *bufferCel8;
 static uchar buffer8[ANIM_SIZE];
 
-#define NUM_BENCH_TEXTURES 4
+#define NUM_BENCH_TEXTURES 7
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
-static int texNum = 0;
-static int texSize[NUM_BENCH_TEXTURES] =    { 16, 32, 64, 128 };
-static int texShr[NUM_BENCH_TEXTURES] =     { 4,  5,  6,  7};
+static int texNum = 2;
+static int texSize[NUM_BENCH_TEXTURES] =    { 8, 16, 32, 64, 128, 256, 512 };
+static int texShr[NUM_BENCH_TEXTURES] =     { 3, 4,  5,  6,  7,   8,   9};
 static uchar *texBuffer[NUM_BENCH_TEXTURES];
 
 static int benchKind = 0;   // 0 = FLAT, 1-4 = TEXTURED (texNum = benchKind-1)
@@ -587,15 +587,18 @@ void drawTimer()
 static void benchTextureControls()
 {
     benchKind = 1;  // to force texture pal in this mode
+
     if (PressedLonce) {
         --texNum;
         if (texNum < 0) texNum = NUM_BENCH_TEXTURES - 1;
         initCCBPolysTexture();
+        PressedLonce = false;
     }
     if (PressedRonce) {
         ++texNum;
         if (texNum==NUM_BENCH_TEXTURES) texNum = 0;
         initCCBPolysTexture();
+        PressedRonce = false;
     }
     sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
     clearScreenWithRect(0, SCREEN_HEIGHT - 8, 64, 8, BG_COLOR);
@@ -656,14 +659,18 @@ static void benchFrameLoop()
 void runAnimationScript()
 {
     MyPoint2D q[4];
+    int i;
 
     if (firstTime) {
         startBenchTime = getTicks();
         firstTime = false;
     }
 
-    //if (frameNum < 80)
-        decodeFrame();
+    if (benchTexture) benchTextureControls();
+
+    if (benchScreens) benchFrameLoop();
+
+    decodeFrame();
 
     if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 31<<15);
 
@@ -675,10 +682,6 @@ void runAnimationScript()
     }
 
     if (!demo && !benchScreens) drawTimer();
-
-    if (benchTexture) benchTextureControls();
-
-    if (benchScreens) benchFrameLoop();
 
     ++frameNum;
 }

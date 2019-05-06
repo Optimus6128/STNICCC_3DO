@@ -170,7 +170,7 @@ static void mainLoop()
     vsync = false;
     if (demo) {
         vsync = true;
-        //startMusic();
+        startMusic();
     }
     if (DEBUG_ON) vsync = true;
 
