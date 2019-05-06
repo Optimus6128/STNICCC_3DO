@@ -311,7 +311,15 @@ static void decodeFrame()
 
 static void renderScript(ScreenBuffer *screen)
 {
-	//if (nextFrame < 1)
+	static int maxPixelsWritten = 0;
+	static int minPixelsWritten = 1000000000;
+
+	static int maxQuads = 0;
+	static int minQuads = 100000;
+
+	const int frameToStop = 1661;
+
+	if (nextFrame <= frameToStop)
 	if (nextFrame > currentFrame) {
 		currentFrame = nextFrame;
 		//std::cout << "\n\n\nFrame " << currentFrame << "\n==========\n\n";
@@ -324,7 +332,30 @@ static void renderScript(ScreenBuffer *screen)
 
 		pixelsWritten = 0;
 		renderPolygons(screen);
-		std::cout << nextFrame << ") " << ((pixelsWritten * 100) / (1024 * 640)) << '%' << std::endl;
+
+		if (maxPixelsWritten < pixelsWritten) {
+			maxPixelsWritten = pixelsWritten;
+			//std::cout << "Max Pixels Frame So Far: " << currentFrame << " with " << pixelsWritten << std::endl;
+		}
+		if (minPixelsWritten > pixelsWritten) {
+			minPixelsWritten = pixelsWritten;
+			//std::cout << "Min Pixels Frame So Far: " << currentFrame << " with " << pixelsWritten << std::endl;
+		}
+
+		if (maxQuads < numQuads) {
+			maxQuads = numQuads;
+			//std::cout << "Max Quads Frame So Far: " << currentFrame << " with " << numQuads << std::endl;
+		}
+		if (minQuads > numQuads) {
+			minQuads = numQuads;
+			//std::cout << "Min Quads Frame So Far: " << currentFrame << " with " << numQuads << std::endl;
+		}
+
+		if (nextFrame > frameToStop) {
+			std::cout << numQuads << ' ' << ((pixelsWritten * 100) / (1024 * 640)) << '%' << std::endl;
+		}
+
+		//std::cout << nextFrame << ") " << ((pixelsWritten * 100) / (1024 * 640)) << '%' << std::endl;
 		drawPalette(screen);
 	}
 }

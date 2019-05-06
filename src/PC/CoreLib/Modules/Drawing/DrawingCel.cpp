@@ -271,7 +271,8 @@ void drawFlatQuad(Point2D &p0, Point2D &p1, Point2D &p2, Point2D &p3, uint color
 		// I could do a check and flip x here, as it's just rendering single flat color, so one more swap would be easy
 
 		for (int x = xl; x < xr; ++x) {
-			*(dst + x) |= color;
+			//*(dst + x) |= color;
+			*(dst + x) = color;
 			++pixelsWritten;
 		}
 		dst += scrWidth;

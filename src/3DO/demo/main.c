@@ -25,6 +25,7 @@ bool gpuOn;
 bool demo;
 bool benchTexture;
 bool benchScreens;
+bool fpsOn = true;
 
 static void quit()
 {
@@ -181,7 +182,7 @@ static void mainLoop()
 
 		script();
 
-        showFPS();
+        if (fpsOn) showFPS();
 		displayScreen();
 	}
 

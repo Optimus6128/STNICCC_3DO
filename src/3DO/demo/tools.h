@@ -1,6 +1,10 @@
 #ifndef TOOLS_H
 #define TOOLS_H
 
+#define FONT_WIDTH 8
+#define FONT_HEIGHT 8
+#define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
+
 void initFonts(void);
 void initTimer(void);
 void drawText(int xtp, int ytp, char *text);

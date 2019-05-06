@@ -63,14 +63,21 @@ static int texNum = 2;
 static int texSize[NUM_BENCH_TEXTURES] =    { 16, 32, 64, 128 };
 static int texShr[NUM_BENCH_TEXTURES] =     { 4,  5,  6,  7 };
 static uchar *texBuffer[NUM_BENCH_TEXTURES];
+static char* benchKindText[NUM_BENCH_KINDS] = { "flat", "16x16", "32x32", "64x64", "128x128" };
 
 static int benchKind = 0;   // 0 = FLAT, 1-4 = TEXTURED (texNum = benchKind-1)
 
-#define NUM_BENCH_FRAMES 8
-static int benchFrame[NUM_BENCH_FRAMES] = { 8, 200, 500, 900, 1400, 1640 };
+#define NUM_BENCH_FRAMES 6
+static int benchFrame[NUM_BENCH_FRAMES] = { 0, 110, 525, 750, 1500, 1661 };
+static int benchFrameStatQuads[NUM_BENCH_FRAMES] = { 164, 40, 63, 60, 89, 56 };
+static int benchFrameStatCoverage[NUM_BENCH_FRAMES] = { 17, 96, 111, 130, 103, 168 };
+
 static int benchFrameFps[NUM_BENCH_FRAMES][NUM_BENCH_KINDS];
+static int maxFrameFps[NUM_BENCH_FRAMES];
 static int benchFrameIndex = 0;
 static CCB *lastQuadCCB;
+
+static bool timeForResults = false;
 
 
 void initDivs()
@@ -593,20 +600,50 @@ static void benchTextureControls()
 
 static void benchFrameEndScreen()
 {
-    while(true) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 15 << 5);
-        displayScreen();
+    static int timara = 0;
+    int i, j, cy, perOff = 2;
+    const int lineCol = (15 << 5) | 31;
+    const int barCol = (24 << 10) | (20 << 5);
+
+    clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 7 << 5);
+
+    cy = 0;
+    clearScreenWithRect(100, 0, 2, SCREEN_HEIGHT, lineCol);
+
+    for (j=0; j<NUM_BENCH_FRAMES; ++j) {
+        if (cy!=0) clearScreenWithRect(0, cy-1, SCREEN_WIDTH, 1, lineCol);
+        drawText(0, cy+4, "Frame"); drawNumber(48, cy+4, benchFrame[j]);
+        drawText(0, cy+4+FONT_HEIGHT, "Polys"); drawNumber(48, cy+4+FONT_HEIGHT, benchFrameStatQuads[j]);
+        drawText(0, cy+4+2*FONT_HEIGHT, "Cover"); drawNumber(48, cy+4+2*FONT_HEIGHT, benchFrameStatCoverage[j]);
+        if (benchFrameStatCoverage[j] >= 100) perOff = 3;
+        drawText(48+perOff*FONT_WIDTH, cy+4+2*FONT_HEIGHT, "%");
+
+        for (i=0; i<NUM_BENCH_KINDS; ++i) {
+            int length = (((benchFrameFps[j][i] * (252 - 162)) / maxFrameFps[j]) * timara) >> 6;
+            clearScreenWithRect(162, cy+1, length, 6, barCol);
+            drawText(102, cy, benchKindText[i]);
+            drawNumber(256, cy, benchFrameFps[j][i]);
+            cy+=FONT_HEIGHT;
+        }
     }
+    ++timara;
+    if (timara  > 64) timara = 64;
+    vsync = true;
 }
 
 static void benchFrameLoop()
 {
     int i;
-    const int benchFrameTicks = 2000;
+    const int benchFrameTicks = 4000;
 
-    if (endOfBench) benchFrameEndScreen();
+    timeForResults = endOfBench;
+    fpsOn = !timeForResults;
 
-    if (benchFrameIndex==NUM_BENCH_FRAMES) return;
+    if (benchFrameIndex==NUM_BENCH_FRAMES) {
+            timeForResults = true;
+            fpsOn = false;
+        return;
+    }
 
     if (benchFrame[benchFrameIndex] == frameNum) {
         for (i=0; i<NUM_BENCH_KINDS; ++i) {
@@ -616,6 +653,7 @@ static void benchFrameLoop()
             benchKind = i;
             if (benchKind == 0) {
                 initCCBpolysFlat();
+                renderPolygons();
             } else {
                 texNum = benchKind - 1;
                 initCCBPolysTexture();
@@ -637,6 +675,13 @@ static void benchFrameLoop()
             } while(getTicks() - startTicks <= benchFrameTicks);
 
             benchFrameFps[benchFrameIndex][i] = (benchRepeatsNum * 1000) / benchFrameTicks;
+            if (i==0) {
+                maxFrameFps[benchFrameIndex] = benchFrameFps[benchFrameIndex][i];
+            } else {
+                if (maxFrameFps[benchFrameIndex] < benchFrameFps[benchFrameIndex][i]) {
+                    maxFrameFps[benchFrameIndex] = benchFrameFps[benchFrameIndex][i];
+                }
+            }
         }
         benchKind = 0;
         initCCBpolysFlat();
@@ -647,27 +692,32 @@ static void benchFrameLoop()
 
 void runAnimationScript()
 {
-    if (firstTime) {
-        startBenchTime = getTicks();
-        firstTime = false;
-    }
-
-    if (benchTexture) benchTextureControls();
-
-    decodeFrame();
-
-    if (benchScreens) benchFrameLoop();
-
-    if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-
-    if (gpuOn) {
-        renderPolygons();
+    if (timeForResults) {
+        benchFrameEndScreen();
     } else {
-        if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-        renderPolygonsSoftware8();
+
+        if (firstTime) {
+            startBenchTime = getTicks();
+            firstTime = false;
+        }
+
+        if (benchTexture) benchTextureControls();
+
+        decodeFrame();
+
+        if (benchScreens) benchFrameLoop();
+
+        if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+
+        if (gpuOn) {
+            renderPolygons();
+        } else {
+            if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+            renderPolygonsSoftware8();
+        }
+
+        if (!demo && !benchScreens) drawTimer();
+
+        ++frameNum;
     }
-
-    if (!demo && !benchScreens) drawTimer();
-
-    ++frameNum;
 }

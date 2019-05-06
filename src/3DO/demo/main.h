@@ -48,5 +48,6 @@ extern bool gpuOn;
 extern bool demo;
 extern bool benchTexture;
 extern bool benchScreens;
+extern bool fpsOn;
 
 #endif

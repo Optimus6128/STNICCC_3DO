@@ -8,10 +8,6 @@
 #define MAX_STRING_LENGTH 64
 #define NUM_FONTS 59
 
-#define FONT_WIDTH 8
-#define FONT_HEIGHT 8
-#define FONT_SIZE (FONT_WIDTH * FONT_HEIGHT)
-
 
 // -------------------------------------
 
