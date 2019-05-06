@@ -228,7 +228,7 @@ void initCCBPolysTexture()
         CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV;
         CCBPtr->ccb_PIXC = 0x1F00;
         CCBPtr->ccb_PRE0 = 0x00000005 | ((texHeight - 1) << 6);
-        CCBPtr->ccb_PRE1 = (((texWidth >> 1) - 2) << 16) | (texWidth - 1);
+        CCBPtr->ccb_PRE1 = (((texWidth >> 2) - 2) << 16) | (texWidth - 1);
 
         CCBPtr->ccb_SourcePtr = (CelData*)texBuffer[texNum];
 
@@ -385,14 +385,13 @@ static void renderPolygons()
             mapCelToTexturedQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
 	}
-	//--quadCCB;
+	--quadCCB;
 
     //p[0].x = 100; p[0].y = 80;
     //p[1].x = 200; p[1].y = 100;
     //p[2].x = 150; p[2].y = 200;
     //p[3].x = 120; p[3].y = 180;
-    //mapCelToFlatQuad(quadCCB, p, (24 << 10) | (15 << 5));
-    //mapCelToTexturedQuad(quadCCB, p, rand() & 31);
+    //mapCelToTexturedQuad(quadCCB, p, 4);
 
 
 	lastQuadCCB = quadCCB;
@@ -663,7 +662,8 @@ void runAnimationScript()
         firstTime = false;
     }
 
-    decodeFrame();
+    //if (frameNum < 80)
+        decodeFrame();
 
     if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 31<<15);
 

@@ -174,7 +174,7 @@ static void mainLoop()
     }
     if (DEBUG_ON) vsync = true;
 
-vsync = true;
+//vsync = true;
 	while(!restart)
 	{
 	    processJoystick();
