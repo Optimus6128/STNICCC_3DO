@@ -177,20 +177,33 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	}
 }
 
-void initBenchTextures()
+void initBenchTextures(bool cyber)
 {
-    int x,y,i,n;
+    int x,y,i,n,c,xc,yc;
 
     for (n=0; n<NUM_BENCH_TEXTURES; ++n) {
         const int width = texSize[n];
         const int height = texSize[n];
         texBuffer[n] = (uchar*)malloc(width * height * sizeof(uchar));
 
-        //procgen here
         i = 0;
-        for (y=0; y<height; ++y) {
-            for (x=0; x<width; ++x) {
-                texBuffer[n][i++] = (x^y) & 31;
+        if (cyber) {
+            for (y=0; y<height; y++)
+            {
+                yc = y - (height >> 1);
+                for (x=0; x<width; x++)
+                {
+                    xc = x - (width >> 1);
+                    c = (xc * xc * xc * xc + yc * yc * yc * yc) >> (7 + n * 4);
+                    if (c > 31) c = 31;
+                    texBuffer[n][i++] = c;
+                }
+            }
+        } else {
+            for (y=0; y<height; ++y) {
+                for (x=0; x<width; ++x) {
+                    texBuffer[n][i++] = (x^y) & 31;
+                }
             }
         }
     }

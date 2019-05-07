@@ -149,7 +149,6 @@ static void initStuff()
     initDivs();
 
     initCCBbuffers();
-    initBenchTextures();
 }
 
 static void script()
@@ -163,10 +162,15 @@ static void mainLoop()
 
     clearAllScreens(BG_COLOR);
 
-    if (benchTexture)
+    if (benchTexture) {
+        initBenchTextures(true);
         initCCBPolysTexture();
+    }
     else
         initCCBpolysFlat();
+
+    if (benchScreens)
+        initBenchTextures(false);
 
     vsync = false;
     if (demo) {
