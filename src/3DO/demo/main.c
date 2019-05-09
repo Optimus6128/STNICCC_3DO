@@ -7,6 +7,8 @@
 #include "ScriptMain.h"
 #include "sound.h"
 
+#include "fx_stars0.h"
+
 static bool restart = false;
 
 static bool PressedA = false;
@@ -154,6 +156,7 @@ static void initStuff()
 static void script()
 {
     runAnimationScript();
+    if (demo) stars0Run(getTicks());
 }
 
 static void mainLoop()
@@ -175,6 +178,7 @@ static void mainLoop()
     vsync = false;
     if (demo) {
         vsync = true;
+        stars0Init();
         startMusic();
     }
     if (DEBUG_ON) vsync = true;

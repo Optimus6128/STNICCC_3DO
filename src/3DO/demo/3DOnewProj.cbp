@@ -28,6 +28,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="bitfonts.h" />
+		<Unit filename="fx_stars0.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="fx_stars0.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -40,6 +44,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="sound.h" />
+		<Unit filename="sprite_engine.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="sprite_engine.h" />
 		<Unit filename="system_graphics.c">
 			<Option compilerVar="CC" />
 		</Unit>
