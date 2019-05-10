@@ -153,19 +153,22 @@ static void initStuff()
     initCCBbuffers();
 }
 
+static int startT;
+
 static void demoScript()
 {
-    static int demoT = 0;
-    const int animTstart = 1640;
-    const int starsTend = animTstart + 16;
+    int demoT = getTicks() - startT;
 
-    int fpals = demoT;
+    const int animTstart = 30000;
+    const int starsTend = animTstart - 128;
+
+    int fpals = demoT >> 4;
     if (demoT > 255 && demoT < starsTend - 256) fpals = 256;
     if (demoT >= starsTend - 256) fpals = starsTend - demoT;
     if (demoT < 0) demoT = 0;
 
 
-    if (demoT < starsTend + NUM_SCREEN_PAGES) {
+    if (demoT < starsTend + 256) {
         clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     }
 
@@ -175,15 +178,17 @@ static void demoScript()
     if (demoT < starsTend) {
         stars0Run(getTicks(), fpals);
     }
-
-    ++demoT;
 }
+
 
 static void mainLoop()
 {
     menuScreen();
 
-    clearAllScreens(BG_COLOR);
+    if (demo)
+        clearAllScreens(0);
+    else
+        clearAllScreens(BG_COLOR);
 
     if (benchTexture) {
         initBenchTextures(true);
@@ -203,7 +208,8 @@ static void mainLoop()
     }
     if (DEBUG_ON) vsync = true;
 
-//vsync = true;
+
+    startT = getTicks();
 	while(!restart)
 	{
 	    processJoystick();

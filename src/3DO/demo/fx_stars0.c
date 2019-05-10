@@ -5,7 +5,7 @@
 #include "sprite_engine.h"
 #include "system_graphics.h"
 
-#define NUM_STARS0 128
+#define NUM_STARS0 96
 #define NUM_FADE_PALS0 32
 
 static sprite *stars[NUM_STARS0];
@@ -123,7 +123,7 @@ static void updateStars(uint32 time)
 
     starTrans *starPtr = star;
 
-    angle = time << 13;
+    angle = time << 14;
 
     //isHit = false;
     for (i=0; i<NUM_STARS0; i++)
