@@ -158,6 +158,11 @@ static int startT;
 static void demoScript()
 {
     int demoT = getTicks() - startT;
+    static int tz1 = 256;
+    static int tz2 = 256;
+    static int tz3 = 256;
+    static int tz4 = 256;
+    const int spz = 16;
 
     const int animTstart = 30000;
     const int starsTend = animTstart - 128;
@@ -178,6 +183,17 @@ static void demoScript()
     if (demoT < starsTend) {
         stars0Run(getTicks(), fpals);
     }
+
+    //18
+    //23-24
+    //29-30
+    //35-36
+    //drawNumber(0, 0, musicStatus);
+
+    if (musicStatus >= 18 && musicStatus <=20) {drawZoomedText(24,64, "Optimus", tz1); if (tz1 <= 512) tz1 += spz; };
+    if (musicStatus >= 23 && musicStatus <=26) {drawZoomedText(160,96, "Presents", tz2); if (tz2 <= 512) tz2 += spz; };
+    if (musicStatus >= 29 && musicStatus <=32) {drawZoomedText(32,128, "STNICCC Demo", tz3); if (tz3 <= 512) tz3 += spz; };
+    if (musicStatus >= 35 && musicStatus <=38) {drawZoomedText(192,160, "For 3DO", tz4); if (tz4 <= 512) tz4 += spz; };
 }
 
 
@@ -222,6 +238,7 @@ static void mainLoop()
 
         if (!demo && fpsOn) showFPS();
 		displayScreen();
+        if (musicStatus==0) { startT = getTicks(); };
 	}
 
 	quit();

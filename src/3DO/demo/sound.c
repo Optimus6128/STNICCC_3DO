@@ -27,6 +27,8 @@
 int32 PlaySoundFile (char *FileName, int32 BufSize, int32 NumReps);
 void SpoolSoundFileThread( void );
 
+int musicStatus = 0;
+
 /*
 ** Allocate enough space so that you don't get stack overflows.
 ** An overflow will be characterized by seemingly random crashes
@@ -98,15 +100,16 @@ int32 PlaySoundFile (char *FileName, int32 BufSize, int32 NumReps)
 
 		sfp = OpenSoundFile(FileName, NUMBUFFS, BufSize);
 		CHECKPTR(sfp, "OpenSoundFile");
-
 		Result = StartSoundFile( sfp, MAXAMPLITUDE );
 		CHECKRESULT(Result,"StartSoundFile");
 
 /* Keep playing until no more samples. */
 		SignalIn = 0;
 		SignalsNeeded = 0;
+
 		do
 		{
+		    ++musicStatus;
 			if (SignalsNeeded) SignalIn = WaitSignal(SignalsNeeded);
 			Result = ServiceSoundFile(sfp, SignalIn, &SignalsNeeded);
 			CHECKRESULT(Result,"ServiceSoundFile");

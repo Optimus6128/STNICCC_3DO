@@ -102,6 +102,32 @@ void drawText(int xtp, int ytp, char *text)
 	textCel[i]->ccb_Flags ^= CCB_LAST;
 }
 
+void drawZoomedText(int xtp, int ytp, char *text, int zoom)
+{
+    int i = 0;
+    char c;
+
+    do {
+        c = fontsMap[*text++];
+
+        textCel[i]->ccb_XPos = xtp  << 16;
+        textCel[i]->ccb_YPos = ytp  << 16;
+
+        textCel[i]->ccb_HDX = (zoom << 20) >> 8;
+        textCel[i]->ccb_VDY = (zoom << 16) >> 8;
+
+        textCel[i]->ccb_SourcePtr = (CelData*)&fontsBmp[c * FONT_SIZE];
+
+        xtp+= ((zoom * 8) >> 8);
+        ++charPosX;
+    } while(c!=255 && ++i < MAX_STRING_LENGTH);
+
+    --i;
+	textCel[i]->ccb_Flags |= CCB_LAST;
+	drawCels(textCel[0]);
+	textCel[i]->ccb_Flags ^= CCB_LAST;
+}
+
 
 static void newLine()
 {

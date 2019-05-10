@@ -4,4 +4,6 @@
 void startMusic(void);
 void endMusic(void);
 
+extern int musicStatus;
+
 #endif
