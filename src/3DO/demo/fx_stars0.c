@@ -21,6 +21,8 @@ static starTrans star[NUM_STARS0];
 
 static int starZoom[2048];
 
+static int fadePals = 0;
+
 static void randomizeStar(int starNum)
 {
     int r = rand() & 255;
@@ -121,7 +123,7 @@ static void updateStars(uint32 time)
 
     starTrans *starPtr = star;
 
-    angle = time << 18;
+    angle = time << 13;
 
     //isHit = false;
     for (i=0; i<NUM_STARS0; i++)
@@ -133,6 +135,10 @@ static void updateStars(uint32 time)
         stars[i]->posX = SCREEN_WIDTH / 2 + px; stars[i]->posY = SCREEN_HEIGHT / 2 + py;
 
         zpal = (((1024 - sz) * NUM_FADE_PALS0) >> 10) + (NUM_FADE_PALS0 >> 3);
+
+
+        zpal = (zpal * fadePals) >> 8;
+
         if (zpal < 0) zpal = 0;
         if (zpal > NUM_FADE_PALS0 - 1) zpal = NUM_FADE_PALS0 - 1;
 
@@ -173,8 +179,10 @@ static void updateStars(uint32 time)
     alternate = (alternate + 1) & 3;
 }
 
-void stars0Run(uint32 time)
+void stars0Run(uint32 time, int fpals)
 {
+    fadePals = fpals;
+
     updateStars(time);
     drawSprite(stars[0]);
 }

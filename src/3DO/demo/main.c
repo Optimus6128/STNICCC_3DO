@@ -153,10 +153,30 @@ static void initStuff()
     initCCBbuffers();
 }
 
-static void script()
+static void demoScript()
 {
-    runAnimationScript();
-    if (demo) stars0Run(getTicks());
+    static int demoT = 0;
+    const int animTstart = 1640;
+    const int starsTend = animTstart + 16;
+
+    int fpals = demoT;
+    if (demoT > 255 && demoT < starsTend - 256) fpals = 256;
+    if (demoT >= starsTend - 256) fpals = starsTend - demoT;
+    if (demoT < 0) demoT = 0;
+
+
+    if (demoT < starsTend + NUM_SCREEN_PAGES) {
+        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+    }
+
+    if (demoT >= animTstart)
+        runAnimationScript();
+
+    if (demoT < starsTend) {
+        stars0Run(getTicks(), fpals);
+    }
+
+    ++demoT;
 }
 
 static void mainLoop()
@@ -188,9 +208,13 @@ static void mainLoop()
 	{
 	    processJoystick();
 
-		script();
+		if (demo) {
+            demoScript();
+		} else {
+            runAnimationScript();
+		}
 
-        if (fpsOn) showFPS();
+        if (!demo && fpsOn) showFPS();
 		displayScreen();
 	}
 

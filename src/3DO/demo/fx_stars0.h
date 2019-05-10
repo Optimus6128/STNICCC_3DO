@@ -17,6 +17,6 @@ typedef struct starTrans
 }starTrans;
 
 void stars0Init(void);
-void stars0Run(uint32 time);
+void stars0Run(uint32 time, int fpals);
 
 #endif

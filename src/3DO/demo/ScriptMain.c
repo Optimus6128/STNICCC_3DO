@@ -716,7 +716,11 @@ void runAnimationScript()
 
         if (benchTexture) benchTextureControls();
 
-        decodeFrame();
+        if (demo & (frameNum & 1)) {
+
+        } else {
+            decodeFrame();
+        }
 
         if (benchScreens) benchFrameLoop();
 
