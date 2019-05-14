@@ -23,7 +23,7 @@ static uint32 block64index = 0;
 static uchar *data = &scene1_bin[0];
 
 static ushort pal16[ATARI_PAL_NUM];
-static int pal32[ATARI_PAL_NUM];
+//static int pal32[ATARI_PAL_NUM];
 static MyPoint2D pt[MAX_POLYGON_PTS];
 
 static ushort texPals[ATARI_PAL_NUM][32];
@@ -39,6 +39,11 @@ static CCB *polys[MAX_POLYS];
 static CCB polysFlat[MAX_POLYS];
 static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
+
+static uchar *texBufferFlat[ATARI_PAL_NUM];
+static const int flatTexWidth = 1;
+static const int flatTexStride = 8;
+static const int flatTexHeight = 2;
 
 static bool mustClearScreen = false;
 
@@ -209,6 +214,7 @@ void initBenchTextures(bool cyber)
     }
 }
 
+/*
 void initCCBpolysFlat()
 {
 	CCB *CCBPtr;
@@ -226,6 +232,39 @@ void initCCBpolysFlat()
 
         polys[i] = CCBPtr++;
 	}
+}
+*/
+
+void initCCBpolysFlat()
+{
+    static bool mustBuildFlatTextures = true;
+
+	CCB *CCBPtr;
+    int i;
+
+    if (mustBuildFlatTextures) {
+        const int flatTextSize = flatTexStride * flatTexHeight;
+        for (i=0; i<ATARI_PAL_NUM; ++i) {
+            texBufferFlat[i] = (uchar*)malloc(flatTextSize * sizeof(uchar));  // creating 1x2 texture but with 4 bytes stride
+            memset(texBufferFlat[i], i, flatTextSize);
+        }
+        mustBuildFlatTextures = false;
+    }
+
+
+    CCBPtr = &polysFlat[0];
+    for (i=0; i<MAX_POLYS; ++i) {
+		CCBPtr->ccb_NextPtr = (CCB*)(sizeof(CCB)-8);	// Create the next offset
+
+        CCBPtr->ccb_Flags = CCB_SPABS|CCB_LDSIZE|CCB_LDPRS|CCB_LDPPMP|CCB_CCBPRE|CCB_YOXY|CCB_ACW|CCB_ACCW|CCB_ACE|CCB_BGND|CCB_NOBLK|CCB_PPABS|CCB_LDPLUT|CCB_USEAV;
+        CCBPtr->ccb_PIXC = 0x1F00;
+        CCBPtr->ccb_PRE0 = 0x00000005 | ((flatTexHeight - 1) << 6);
+        CCBPtr->ccb_PRE1 = (((flatTexStride >> 2) - 2) << 16) | (flatTexWidth - 1);
+
+        CCBPtr->ccb_PLUTPtr = (PLUTChunk*)pal16;
+
+        polys[i] = CCBPtr++;
+    }
 }
 
 void initCCBPolysTexture()
@@ -294,7 +333,8 @@ static void addPolygon(int numVertices, int paletteIndex)
 	}
 }
 
-static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
+/*
+static void mapCelToFlatQuad(CCB *cel, MyPoint2D *q, ushort color)
 {
 	const int ptX0 = q[1].x - q[0].x;
 	const int ptY0 = q[1].y - q[0].y;
@@ -308,58 +348,77 @@ static void mapCelToFlatQuad(CCB *c, MyPoint2D *q, ushort color)
 	const int hdx1 = ptX1 << 20;
 	const int hdy1 = ptY1 << 20;
 
-	c->ccb_XPos = q[0].x<<16;
-	c->ccb_YPos = q[0].y<<16;
+	cel->ccb_XPos = q[0].x<<16;
+	cel->ccb_YPos = q[0].y<<16;
 
-	c->ccb_HDX = hdx0;
-	c->ccb_HDY = hdy0;
-    c->ccb_VDX = ptX2 << 16;
-	c->ccb_VDY = ptY2 << 16;
+	cel->ccb_HDX = hdx0;
+	cel->ccb_HDY = hdy0;
+    cel->ccb_VDX = ptX2 << 16;
+	cel->ccb_VDY = ptY2 << 16;
 
-	c->ccb_HDDX = hdx1 - hdx0;
-	c->ccb_HDDY = hdy1 - hdy0;
+	cel->ccb_HDDX = hdx1 - hdx0;
+	cel->ccb_HDDY = hdy1 - hdy0;
 
-	c->ccb_PLUTPtr = (void *)((uint32)color<<16);
+	cel->ccb_PLUTPtr = (void *)((uint32)color<<16);
+}*/
+
+void mapCelToTexturedQuadFlat(CCB *cel, MyPoint2D *q, int color)
+{
+	const int ptX0 = q[1].x - q[0].x;
+	const int ptY0 = q[1].y - q[0].y;
+	const int ptX1 = q[2].x - q[3].x;
+	const int ptY1 = q[2].y - q[3].y;
+	const int ptX2 = q[3].x - q[0].x;
+	const int ptY2 = q[3].y - q[0].y;
+
+	const int hdx0 = ptX0 << 20;
+	const int hdy0 = ptY0 << 20;
+	const int hdx1 = ptX1 << 20;
+	const int hdy1 = ptY1 << 20;
+
+	cel->ccb_XPos = q[0].x<<16;
+	cel->ccb_YPos = q[0].y<<16;
+
+	cel->ccb_HDX = hdx0;
+	cel->ccb_HDY = hdy0;
+    cel->ccb_VDX = (ptX2 << 16) >> 1;
+	cel->ccb_VDY = (ptY2 << 16) >> 1;
+
+	cel->ccb_HDDX = (hdx1 - hdx0) >> 1;
+	cel->ccb_HDDY = (hdy1 - hdy0) >> 1;
+
+	cel->ccb_SourcePtr = (CelData*)texBufferFlat[color];
 }
 
-void mapCelToTexturedQuad(CCB *c, MyPoint2D *q, int color)
+void mapCelToTexturedQuad(CCB *cel, MyPoint2D *q, int color)
 {
     const int shrWidth = texShr[texNum];
     const int shrHeight = texShr[texNum];
 
-    const int q0x = q[0].x;
-    const int q0y = q[0].y;
-    const int q1x = q[1].x;
-    const int q1y = q[1].y;
-    const int q2x = q[2].x;
-    const int q2y = q[2].y;
-    const int q3x = q[3].x;
-    const int q3y = q[3].y;
-
-	const int ptX0 = q1x - q0x;
-	const int ptY0 = q1y - q0y;
-	const int ptX1 = q2x - q3x;
-	const int ptY1 = q2y - q3y;
-	const int ptX2 = q3x - q0x;
-	const int ptY2 = q3y - q0y;
+	const int ptX0 = q[1].x - q[0].x;
+	const int ptY0 = q[1].y - q[0].y;
+	const int ptX1 = q[2].x - q[3].x;
+	const int ptY1 = q[2].y - q[3].y;
+	const int ptX2 = q[3].x - q[0].x;
+	const int ptY2 = q[3].y - q[0].y;
 
 	const int hdx0 = (ptX0 << 20) >> shrWidth;
 	const int hdy0 = (ptY0 << 20) >> shrWidth;
 	const int hdx1 = (ptX1 << 20) >> shrWidth;
 	const int hdy1 = (ptY1 << 20) >> shrWidth;
 
-	c->ccb_XPos = q0x << 16;
-	c->ccb_YPos = q0y << 16;
+	cel->ccb_XPos = q[0].x<<16;
+	cel->ccb_YPos = q[0].y<<16;
 
-	c->ccb_HDX = hdx0;
-	c->ccb_HDY = hdy0;
-    c->ccb_VDX = (ptX2 << 16) >> shrHeight;
-	c->ccb_VDY = (ptY2 << 16) >> shrHeight;
+	cel->ccb_HDX = hdx0;
+	cel->ccb_HDY = hdy0;
+    cel->ccb_VDX = (ptX2 << 16) >> shrHeight;
+	cel->ccb_VDY = (ptY2 << 16) >> shrHeight;
 
-	c->ccb_HDDX = (hdx1 - hdx0) >> shrHeight;
-	c->ccb_HDDY = (hdy1 - hdy0) >> shrHeight;
+	cel->ccb_HDDX = (hdx1 - hdx0) >> shrHeight;
+	cel->ccb_HDDY = (hdy1 - hdy0) >> shrHeight;
 
-	c->ccb_PLUTPtr = (PLUTChunk*)texPals[color];
+	cel->ccb_PLUTPtr = (PLUTChunk*)texPals[color];
 }
 
 static void renderPolygonsSoftware8()
@@ -393,7 +452,8 @@ static void renderPolygons()
 		p[2].x = quads[i].p2.x + animPosX; p[2].y = quads[i].p2.y + animPosY;
 		p[3].x = quads[i].p3.x + animPosX; p[3].y = quads[i].p3.y + animPosY;
 		if (benchKind == 0)
-            mapCelToFlatQuad(quadCCB, p, pal32[quads[i].c]);
+            //mapCelToFlatQuad(quadCCB, p, pal32[quads[i].c]);
+            mapCelToTexturedQuadFlat(quadCCB, p, quads[i].c);
         else
             mapCelToTexturedQuad(quadCCB, p, quads[i].c);
 		++quadCCB;
@@ -428,7 +488,7 @@ static void interpretPaletteData()
 
 			c = (r << 12) | (g << 7) | (b << 2);
 
-			pal32[palNum] = (int)c;
+			//pal32[palNum] = (int)c;
 			pal16[palNum] = c;
 			if (benchTexture || benchScreens) {
                 setPal(0,31, 0,0,0, r<<5, g<<5, b<<5, texPals[palNum]);
