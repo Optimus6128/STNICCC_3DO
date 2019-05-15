@@ -41,9 +41,9 @@ static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static uchar *texBufferFlat[ATARI_PAL_NUM];
-static const int flatTexWidth = 1;
+static const int flatTexWidth = 1;  static const int flatTexWidthShr = 0;
+static const int flatTexHeight = 8;  static const int flatTexHeightShr = 3;
 static const int flatTexStride = 8;
-static const int flatTexHeight = 2;
 
 static bool mustClearScreen = false;
 
@@ -438,8 +438,66 @@ static void renderPolygonsSoftware8()
 	drawCels(bufferCel8);
 }
 
+static void renderPolygonsFlat(QuadStore *q, CCB *cel, int num)
+{
+    int i;
+    CCB *startingCel = cel;
+
+    if (num==0) return;
+
+	for (i=0; i<num; ++i) {
+        const MyPoint2D *p0 = &q->p0;
+        const MyPoint2D *p1 = &q->p1;
+        const MyPoint2D *p2 = &q->p2;
+        const MyPoint2D *p3 = &q->p3;
+
+        const int ptX0 = p1->x - p0->x;
+        const int ptY0 = p1->y - p0->y;
+        const int ptX1 = p2->x - p3->x;
+        const int ptY1 = p2->y - p3->y;
+        const int ptX2 = p3->x - p0->x;
+        const int ptY2 = p3->y - p0->y;
+
+        const int hdx0 = (ptX0 << 20) >> flatTexWidthShr;
+        const int hdy0 = (ptY0 << 20) >> flatTexWidthShr;
+        const int hdx1 = (ptX1 << 20) >> flatTexWidthShr;
+        const int hdy1 = (ptY1 << 20) >> flatTexWidthShr;
+
+        cel->ccb_XPos = p0->x<<16;
+        cel->ccb_YPos = p0->y<<16;
+
+        cel->ccb_HDX = hdx0;
+        cel->ccb_HDY = hdy0;
+        cel->ccb_VDX = (ptX2 << 16) >> flatTexHeightShr;
+        cel->ccb_VDY = (ptY2 << 16) >> flatTexHeightShr;
+
+        cel->ccb_HDDX = (hdx1 - hdx0) >> flatTexHeightShr;
+        cel->ccb_HDDY = (hdy1 - hdy0) >> flatTexHeightShr;
+
+        cel->ccb_SourcePtr = (CelData*)texBufferFlat[q->c];
+
+        ++q;
+        ++cel;
+	}
+
+	lastQuadCCB = --cel;
+	lastQuadCCB->ccb_Flags |= CCB_LAST;
+	drawCels(startingCel);
+	lastQuadCCB->ccb_Flags ^= CCB_LAST;
+}
+
+static void renderPolygonsTextured()
+{
+
+}
+
 static void renderPolygons()
 {
+    if (benchKind == 0)
+        renderPolygonsFlat(quads, polys[0], numQuads);
+    else
+        renderPolygonsTextured();
+/*
     int i;
     static MyPoint2D p[4];
     CCB *quadCCB = polys[0];
@@ -464,6 +522,7 @@ static void renderPolygons()
 	quadCCB->ccb_Flags |= CCB_LAST;
 	drawCels(polys[0]);
 	quadCCB->ccb_Flags ^= CCB_LAST;
+*/
 }
 
 static void interpretPaletteData()
@@ -540,8 +599,8 @@ static void interpretIndexedMode()
 	int vertexNum = *data++;
 
 	for (i = 0; i < vertexNum; ++i) {
-		vi[i].x = (int)*data++;
-		vi[i].y = (int)*data++;
+		vi[i].x = (int)*data++ + animPosX;
+		vi[i].y = (int)*data++ + animPosY;
 	}
 
 	while(true) {
@@ -577,8 +636,8 @@ static void interpretNonIndexedMode()
         polyNumVertices = (int)(descriptor & 15);
 
 		for (n = 0; n < polyNumVertices; ++n) {
-			pt[n].x = *data++;
-			pt[n].y = *data++;
+			pt[n].x = *data++ + animPosX;
+			pt[n].y = *data++ + animPosY;
 		}
 		addPolygon(polyNumVertices, polyPaletteIndex);
 	}
