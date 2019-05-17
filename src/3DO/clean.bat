@@ -1,5 +1,5 @@
 del *.iso
-cd demo
+cd src
 del LaunchMe.
 dmake clean
 pause

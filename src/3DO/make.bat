@@ -1,3 +1,3 @@
-cd demo
+cd src
 dmake
 pause

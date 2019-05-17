@@ -44,6 +44,8 @@ void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int
 void clearAllScreens(ushort color);
 
 ushort *getVideoramAddress(void);
+void setScreenClipping(int posX, int posY, int width, int height);
+void resetScreenClipping(void);
 
 extern bool vsync;
 

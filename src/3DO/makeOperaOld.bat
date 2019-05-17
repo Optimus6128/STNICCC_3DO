@@ -9,7 +9,7 @@ echo 2 of 4: ISO template done.
 
 REM STEP 3 - covert to Opera file system ISO
 cd..
-tools\opera\3doiso.exe -in CD -out demo.iso
+operaFS.ahk
 echo 3 of 4: ISO file system done
 
 pause

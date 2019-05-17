@@ -8,10 +8,10 @@ bool vsync = true;
 static Item    gVRAMIOReq;
 static Item    vsyncItem;
 
-static Item BitmapItems[NUM_SCREEN_PAGES];
-static Bitmap *Bitmaps[NUM_SCREEN_PAGES];
+static Item VideoItems[NUM_SCREEN_PAGES];
+static Bitmap *VideoBuffers[NUM_SCREEN_PAGES];
 
-static ScreenContext Screencontext;
+static ScreenContext screenContext;
 
 static IOInfo ioInfo;
 
@@ -22,21 +22,21 @@ void initGraphics()
 	int i;
 	int width,height;
 
-	OpenGraphics(&Screencontext,NUM_SCREEN_PAGES);
+	OpenGraphics(&screenContext,NUM_SCREEN_PAGES);
 
 	for(i=0;i<NUM_SCREEN_PAGES;i++)
 	{
-		BitmapItems[i] = Screencontext.sc_BitmapItems[i];
-		Bitmaps[i] = Screencontext.sc_Bitmaps[i];
+		VideoItems[i] = screenContext.sc_BitmapItems[i];
+		VideoBuffers[i] = screenContext.sc_Bitmaps[i];
 
-		SetCEControl(BitmapItems[i], 0xffffffff, ASCALL);
+		SetCEControl(VideoItems[i], 0xffffffff, ASCALL);
 
-		EnableHAVG( BitmapItems[i] );
-		EnableVAVG( BitmapItems[i] );
+		EnableHAVG( VideoItems[i] );
+		EnableVAVG( VideoItems[i] );
 	}
 
-	width = Bitmaps[0]->bm_Width;
-	height = Bitmaps[0]->bm_Height;
+	width = VideoBuffers[0]->bm_Width;
+	height = VideoBuffers[0]->bm_Height;
 
 	gVRAMIOReq = CreateVRAMIOReq();		// Obtain an IOReq for all SPORT operations
 
@@ -44,7 +44,7 @@ void initGraphics()
 	ioInfo.ioi_Command = FLASHWRITE_CMD;
 	ioInfo.ioi_CmdOptions = 0xffffffff;
 	ioInfo.ioi_Offset = 0x00000000; // background colour
-	ioInfo.ioi_Recv.iob_Buffer = Bitmaps[0]->bm_Buffer;
+	ioInfo.ioi_Recv.iob_Buffer = VideoBuffers[0]->bm_Buffer;
 	ioInfo.ioi_Recv.iob_Len = width*height*NUM_SCREEN_PAGES;   // 2 could be because 16bit and not because number of buffers, gotta check
 
 	vsyncItem = GetVBLIOReq();
@@ -52,12 +52,12 @@ void initGraphics()
 
 ushort *getVideoramAddress()
 {
-    return (ushort*)Bitmaps[screenPage]->bm_Buffer;
+    return (ushort*)VideoBuffers[screenPage]->bm_Buffer;
 }
 
 void displayScreen()
 {
-    DisplayScreen(Screencontext.sc_Screens[screenPage], 0 );
+    DisplayScreen(screenContext.sc_Screens[screenPage], 0 );
     if (vsync) WaitVBL(vsyncItem, 1);
 
     screenPage = (screenPage+ 1) % NUM_SCREEN_PAGES;
@@ -65,12 +65,12 @@ void displayScreen()
 
 void drawCels(CCB *cels)
 {
-    DrawCels(BitmapItems[screenPage], cels);
+    DrawCels(VideoItems[screenPage], cels);
 }
 
 void fadeToBlack()
 {
-    FadeToBlack(&Screencontext, FADE_FRAMECOUNT);
+    FadeToBlack(&screenContext, FADE_FRAMECOUNT);
 }
 
 void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color)
@@ -102,4 +102,21 @@ void clearAllScreens(ushort color)
         clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color);
         displayScreen();
     }
+}
+
+void setScreenClipping(int posX, int posY, int width, int height)
+{
+    // Doesn't work yet
+    int i;
+    for (i=0; i<NUM_SCREEN_PAGES; ++i) {
+        SetClipOrigin(VideoItems[i], posX, posY);
+        SetClipWidth(VideoItems[i], width);
+        SetClipHeight(VideoItems[i], height);
+    }
+}
+
+void resetScreenClipping()
+{
+    // Doesn't work yet
+    setScreenClipping(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
