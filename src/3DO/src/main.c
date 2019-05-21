@@ -7,6 +7,11 @@
 #include "ScriptMain.h"
 #include "sound.h"
 
+
+#include "engine_main.h"
+#include "engine_texture.h"
+#include "engine_mesh.h"
+
 #include "fx_stars0.h"
 
 static bool restart = false;
@@ -28,6 +33,9 @@ bool demo;
 bool benchTexture;
 bool benchScreens;
 bool fpsOn = true;
+
+static mesh *cubeMesh;
+
 
 static void quit()
 {
@@ -148,9 +156,12 @@ static void initStuff()
 	initFonts();
 	initTimer();
 
-    initDivs();
-
     initCCBbuffers();
+
+	initMathUtil();
+	initTextures();
+
+	cubeMesh = initMesh(MESH_CUBE, 256, 1);
 }
 
 static int startT;
@@ -196,6 +207,16 @@ static void demoScript()
     if (musicStatus >= 35 && musicStatus <=38) {drawZoomedText(192,160, "For 3DO", tz4); if (tz4 <= 512) tz4 += spz; };
 }
 
+static void test3D()
+{
+    int t = startT >> 4;
+
+    cubeMesh->posX = 0; cubeMesh->posY = 0; cubeMesh->posZ = 640;
+    cubeMesh->rotX = t; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 2;
+
+    uploadTransformAndProjectMesh(cubeMesh);
+    renderTransformedGeometry(cubeMesh);
+}
 
 static void mainLoop()
 {
@@ -235,6 +256,8 @@ static void mainLoop()
 		} else {
             runAnimationScript();
 		}
+
+		test3D();
 
         if (!demo && fpsOn) showFPS();
 		displayScreen();

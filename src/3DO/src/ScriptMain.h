@@ -14,13 +14,6 @@ typedef struct QuadStore
 	int c;
 }QuadStore;
 
-
-#define FP_BITS 12
-
-#define INT_TO_FIXED(i,b) ((i) << b)
-#define FIXED_TO_INT(x,b) ((x) >> b)
-
-
 void runAnimationScript(void);
 void initCCBpolysFlat(void);
 void initCCBPolysTexture(void);

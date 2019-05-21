@@ -28,6 +28,18 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="bitfonts.h" />
+		<Unit filename="engine_main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine_main.h" />
+		<Unit filename="engine_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine_mesh.h" />
+		<Unit filename="engine_texture.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine_texture.h" />
 		<Unit filename="fx_stars0.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -36,6 +48,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="main.h" />
+		<Unit filename="mathutil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mathutil.h" />
 		<Unit filename="scene1.c">
 			<Option compilerVar="CC" />
 		</Unit>

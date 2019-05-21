@@ -3,6 +3,7 @@
 #include "main.h"
 #include "system_graphics.h"
 #include "tools.h"
+#include "mathutil.h"
 #include "sound.h"
 
 #define MAX_POLYS 256
@@ -10,13 +11,9 @@
 #define ANIM_HEIGHT 200
 #define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
 
-#define DIV_TAB_SIZE 4096
-#define DIV_TAB_SHIFT 16
-
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
-static int32 divTab[DIV_TAB_SIZE];
 
 static uint32 block64index = 0;
 
@@ -84,16 +81,7 @@ static CCB *lastQuadCCB;
 static bool timeForResults = false;
 
 
-void initDivs()
-{
-    int i, ii;
-    for (i=0; i<DIV_TAB_SIZE; ++i) {
-        ii = i - DIV_TAB_SIZE / 2;
-        if (i==0) ++ii;
 
-        divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
-    }
-}
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -118,16 +106,16 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
         const int x0 = p0->x; const int y0 = p0->y;
         const int x1 = p1->x; const int y1 = p1->y;
 
-        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
+        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BASE);
 
-        int xp = INT_TO_FIXED(x0, FP_BITS);
+        int xp = INT_TO_FIXED(x0, FP_BASE);
         int count = y1 - y0;
 
         edgeListToWriteFlat = &edgeListToWriteFlat[y0];
 
         do
         {
-            *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
+            *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BASE);
             xp += dx;
         } while(count-- != 0);
     }
