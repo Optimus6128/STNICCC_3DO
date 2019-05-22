@@ -12,5 +12,6 @@ enum {TEXTURE_FLAT, TEXTURE_NOISE, TEXTURE_XOR, TEXTURE_GRID, TEXTURE_NUM};
 
 void initTextures(void);
 texture *getTexture(int textureNum);
+texture *createTexture(int width, int height, uint8 *bitmap, uint16 *pal);
 
 #endif

@@ -6,11 +6,11 @@
 #include "mathutil.h"
 #include "sound.h"
 
-#define MAX_POLYS 256
-#define ANIM_WIDTH 256
-#define ANIM_HEIGHT 200
-#define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
+#include "engine_main.h"
+#include "engine_texture.h"
+#include "engine_mesh.h"
 
+#define MAX_POLYS 256
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
@@ -80,8 +80,8 @@ static CCB *lastQuadCCB;
 
 static bool timeForResults = false;
 
-
-
+static mesh *cubeMesh;
+static texture *animTex;
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -257,13 +257,39 @@ void initCCBPolysTexture()
 
 void initCCBbuffers()
 {
+    Point q[4];
+    q[0].pt_X = 0; q[0].pt_Y = 0;
+    q[1].pt_X = 319; q[1].pt_Y = 0;
+    q[2].pt_X = 319; q[2].pt_Y = 239;
+    q[3].pt_X = 0; q[3].pt_Y = 239;
+
     bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
     bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
-    bufferCel8->ccb_XPos = animPosX << 16;
-    bufferCel8->ccb_YPos = animPosY << 16;
+    //bufferCel8->ccb_XPos = animPosX << 16;
+    //bufferCel8->ccb_YPos = animPosY << 16;
+
+    MapCel(bufferCel8, q);
 
     bufferCel8->ccb_Flags |= CCB_NOBLK;
+    bufferCel8->ccb_PIXC = 0x1000;
+}
+
+void initTest3D()
+{
+    animTex = createTexture(ANIM_WIDTH, ANIM_HEIGHT, buffer8, pal16);
+    cubeMesh = initMesh(MESH_CUBE, 256, 1, animTex);
+}
+
+static void test3D(int ticks)
+{
+    int t = ticks >> 5;
+
+    cubeMesh->posX = 0; cubeMesh->posY = 0; cubeMesh->posZ = 512;
+    cubeMesh->rotX = t; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 2;
+
+    uploadTransformAndProjectMesh(cubeMesh);
+    renderTransformedGeometry(cubeMesh);
 }
 
 static void addPolygon(int numVertices, int paletteIndex)
@@ -396,7 +422,7 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
 	lastQuadCCB->ccb_Flags ^= CCB_LAST;
 }
 
-static void renderPolygonsSoftware8()
+static void renderPolygonsSoftware8(int ticks)
 {
     int i;
     static MyPoint2D p[4];
@@ -411,6 +437,7 @@ static void renderPolygonsSoftware8()
 	}
 
 	drawCels(bufferCel8);
+    test3D(ticks);
 }
 
 static void renderPolygons()
@@ -732,7 +759,7 @@ static void benchFrameLoop()
     }
 }
 
-void runAnimationScript()
+void runAnimationScript(int ticks)
 {
     if (timeForResults) {
         benchFrameEndScreen();
@@ -753,13 +780,14 @@ void runAnimationScript()
 
         if (benchScreens) benchFrameLoop();
 
-        if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+        //if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
+        clearScreenWithRect(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 
         if (gpuOn) {
             renderPolygons();
         } else {
             if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-            renderPolygonsSoftware8();
+            renderPolygonsSoftware8(ticks);
         }
 
         if (!demo && !benchScreens) drawTimer();

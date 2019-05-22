@@ -3,6 +3,7 @@
 #include "tools.h"
 #include "engine_texture.h"
 #include "mathutil.h"
+#include "ScriptMain.h"
 
 texture *textures[TEXTURE_NUM];
 
@@ -65,6 +66,18 @@ texture* initTexture(int width, int height, uint16 *pal, int type)
 texture *getTexture(int textureNum)
 {
     return textures[textureNum];
+}
+
+texture *createTexture(int width, int height, uint8 *bitmap, uint16 *pal)
+{
+    texture *tex = (texture*)malloc(sizeof(texture));
+
+    tex->width = width;
+    tex->height = height;
+    tex->bitmap = bitmap;
+    tex->palette = pal;
+
+    return tex;
 }
 
 void initTextures()

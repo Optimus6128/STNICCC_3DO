@@ -34,8 +34,6 @@ bool benchTexture;
 bool benchScreens;
 bool fpsOn = true;
 
-static mesh *cubeMesh;
-
 
 static void quit()
 {
@@ -156,12 +154,11 @@ static void initStuff()
 	initFonts();
 	initTimer();
 
-    initCCBbuffers();
-
 	initMathUtil();
 	initTextures();
 
-	cubeMesh = initMesh(MESH_CUBE, 256, 1);
+    initCCBbuffers();
+    initTest3D();
 }
 
 static int startT;
@@ -189,7 +186,7 @@ static void demoScript()
     }
 
     if (demoT >= animTstart)
-        runAnimationScript();
+        runAnimationScript(demoT);
 
     if (demoT < starsTend) {
         stars0Run(getTicks(), fpals);
@@ -205,17 +202,6 @@ static void demoScript()
     if (musicStatus >= 23 && musicStatus <=26) {drawZoomedText(160,96, "Presents", tz2); if (tz2 <= 512) tz2 += spz; };
     if (musicStatus >= 29 && musicStatus <=32) {drawZoomedText(32,128, "STNICCC Demo", tz3); if (tz3 <= 512) tz3 += spz; };
     if (musicStatus >= 35 && musicStatus <=38) {drawZoomedText(192,160, "For 3DO", tz4); if (tz4 <= 512) tz4 += spz; };
-}
-
-static void test3D()
-{
-    int t = startT >> 4;
-
-    cubeMesh->posX = 0; cubeMesh->posY = 0; cubeMesh->posZ = 640;
-    cubeMesh->rotX = t; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 2;
-
-    uploadTransformAndProjectMesh(cubeMesh);
-    renderTransformedGeometry(cubeMesh);
 }
 
 static void mainLoop()
@@ -254,10 +240,8 @@ static void mainLoop()
 		if (demo) {
             demoScript();
 		} else {
-            runAnimationScript();
+            runAnimationScript(startT);
 		}
-
-		test3D();
 
         if (!demo && fpsOn) showFPS();
 		displayScreen();

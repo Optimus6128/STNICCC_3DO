@@ -26,7 +26,7 @@ void prepareCelList(mesh *ms, bool translucent, bool twosided)
 		if (!twosided)
             ms->quad[i].cel->ccb_Flags &= ~CCB_ACW;
 
-        ms->quad[i].cel->ccb_Flags |= (CCB_ACSC | CCB_ALSC);// | CCB_BGND);
+        ms->quad[i].cel->ccb_Flags |= (CCB_ACSC | CCB_ALSC | CCB_NOBLK | CCB_BGND);
 
         if (translucent)
             ms->quad[i].cel->ccb_PIXC = TRANSLUCENT_CEL;
@@ -36,7 +36,7 @@ void prepareCelList(mesh *ms, bool translucent, bool twosided)
 	ms->quad[ms->quadsNum-1].cel->ccb_Flags |= CCB_LAST;
 }
 
-mesh *initMesh(int type, int size, int divisions)
+mesh *initMesh(int type, int size, int divisions, texture *tex)
 {
     int i, x, y;
 	int xp, yp;
@@ -59,7 +59,7 @@ mesh *initMesh(int type, int size, int divisions)
             for (i=0; i<4; i++)
                 ms->index[i] = i;
 
-            ms->quad[0].tex = getTexture(TEXTURE_NOISE);
+            ms->quad[0].tex = tex;
         break;
 
         case MESH_CUBE:
@@ -84,7 +84,7 @@ mesh *initMesh(int type, int size, int divisions)
             ms->index[20] = 5; ms->index[21] = 4; ms->index[22] = 1; ms->index[23] = 0;
 
 			for (i=0; i<(ms->quadsNum); i++)
-				ms->quad[i].tex = getTexture(TEXTURE_GRID);
+				ms->quad[i].tex = tex;
         break;
 
         case MESH_GRID:
@@ -123,14 +123,14 @@ mesh *initMesh(int type, int size, int divisions)
 			}
 
 			for (i=0; i<(ms->quadsNum); i++)
-                ms->quad[i].tex = getTexture(TEXTURE_GRID);
+                ms->quad[i].tex = tex;
         break;
 
         default:
         break;
     }
 
-    prepareCelList(ms, true, true);
+    prepareCelList(ms, false, false);
 
     return ms;
 }

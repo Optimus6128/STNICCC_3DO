@@ -148,7 +148,8 @@ void renderTransformedGeometry(mesh *ms)
 		quad[2].pt_X = vertices[indices[i+2]].x; quad[2].pt_Y = vertices[indices[i+2]].y;
 		quad[3].pt_X = vertices[indices[i+3]].x; quad[3].pt_Y = vertices[indices[i+3]].y;
 
-        fasterMapCel(ms->quad[j++].cel, quad);
+        //fasterMapCel(ms->quad[j++].cel, quad);
+        MapCel(ms->quad[j++].cel, quad);
     }
 
     drawCels(ms->quad[0].cel);
