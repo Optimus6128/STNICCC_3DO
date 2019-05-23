@@ -37,8 +37,8 @@ static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static uchar *texBufferFlat[ATARI_PAL_NUM];
-static const int flatTexWidth = 1;  static const int flatTexWidthShr = 0;
-static const int flatTexHeight = 8;  static const int flatTexHeightShr = 3;
+static const int flatTexWidth = 4;  static const int flatTexWidthShr = 2;
+static const int flatTexHeight = 4;  static const int flatTexHeightShr = 2;
 static const int flatTexStride = 8;
 
 static bool mustClearScreen = false;
@@ -82,6 +82,8 @@ static bool timeForResults = false;
 
 static mesh *cubeMesh;
 static texture *animTex;
+
+static bool demoFrameUpdated = false;
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -278,7 +280,7 @@ void initCCBbuffers()
 void initTest3D()
 {
     animTex = createTexture(ANIM_WIDTH, ANIM_HEIGHT, buffer8, pal16);
-    cubeMesh = initMesh(MESH_CUBE, 256, 1, animTex);
+    cubeMesh = initMesh(MESH_CUBE, 256, 1, animTex, false, false);
 }
 
 static void test3D(int ticks)
@@ -446,11 +448,14 @@ static void renderPolygons()
 
     // Because hardware screen offset doesn't work yet here, I temporary fix it with this code
     // I know it works on Doom 3DO, but maybe some more things have to be enabled on the VideoItems
-    for (i=0; i<numQuads; ++i) {
-        quads[i].p0.x += animPosX; quads[i].p0.y += animPosY;
-        quads[i].p1.x += animPosX; quads[i].p1.y += animPosY;
-        quads[i].p2.x += animPosX; quads[i].p2.y += animPosY;
-        quads[i].p3.x += animPosX; quads[i].p3.y += animPosY;
+
+    if (demoFrameUpdated) {
+        for (i=0; i<numQuads; ++i) {
+            quads[i].p0.x += animPosX; quads[i].p0.y += animPosY;
+            quads[i].p1.x += animPosX; quads[i].p1.y += animPosY;
+            quads[i].p2.x += animPosX; quads[i].p2.y += animPosY;
+            quads[i].p3.x += animPosX; quads[i].p3.y += animPosY;
+        }
     }
 
     //setScreenClipping(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT);
@@ -601,6 +606,7 @@ static void decodeFrame()
 	else {
 		interpretNonIndexedMode();
 	}
+	demoFrameUpdated = true;
 }
 
 void hackNumToTwoDigitChars(char *buff, int num)    // no time to think of a better way
@@ -714,6 +720,7 @@ static void benchFrameLoop()
         return;
     }
 
+
     if (benchFrame[benchFrameIndex] == frameNum) {
         for (i=0; i<NUM_BENCH_KINDS; ++i) {
             int startTicks = getTicks();
@@ -751,6 +758,7 @@ static void benchFrameLoop()
                     maxFrameFps[benchFrameIndex] = benchFrameFps[benchFrameIndex][i];
                 }
             }
+            demoFrameUpdated = false;   // stupid hack, first frame for flat, animPos are added (I wanted to enable them through hardware but failed and changed where I add them), then disable this
         }
         benchKind = 0;
         initCCBpolysFlat();
@@ -773,15 +781,14 @@ void runAnimationScript(int ticks)
         if (benchTexture) benchTextureControls();
 
         if (demo & (frameNum & 1)) {
-
+            demoFrameUpdated = false;
         } else {
             decodeFrame();
         }
 
         if (benchScreens) benchFrameLoop();
 
-        //if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-        clearScreenWithRect(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+        if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
 
         if (gpuOn) {
             renderPolygons();

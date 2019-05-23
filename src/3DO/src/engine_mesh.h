@@ -28,6 +28,6 @@ typedef struct mesh
 
 enum {MESH_PLANE, MESH_CUBE, MESH_GRID};
 
-mesh *initMesh(int type, int size, int divisions, texture *tex);
+mesh *initMesh(int type, int size, int divisions, texture *tex, bool translucent, bool twosided);
 
 #endif

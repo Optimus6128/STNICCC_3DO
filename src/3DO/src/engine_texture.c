@@ -84,7 +84,7 @@ void initTextures()
 {
     setPal(0,31, 0,0,0, 255,255,255, defaultPal);
 
-    textures[TEXTURE_FLAT] = initTexture(8, 8, defaultPal, TEXTURE_XOR);
+    textures[TEXTURE_FLAT] = initTexture(64, 64, defaultPal, TEXTURE_FLAT);
 	textures[TEXTURE_NOISE] = initTexture(16, 16, defaultPal, TEXTURE_NOISE);
     textures[TEXTURE_XOR] = initTexture(128, 128, defaultPal, TEXTURE_XOR);
     textures[TEXTURE_GRID] = initTexture(128, 128, defaultPal, TEXTURE_GRID);

@@ -36,7 +36,7 @@ void prepareCelList(mesh *ms, bool translucent, bool twosided)
 	ms->quad[ms->quadsNum-1].cel->ccb_Flags |= CCB_LAST;
 }
 
-mesh *initMesh(int type, int size, int divisions, texture *tex)
+mesh *initMesh(int type, int size, int divisions, texture *tex, bool translucent, bool twosided)
 {
     int i, x, y;
 	int xp, yp;
@@ -130,7 +130,7 @@ mesh *initMesh(int type, int size, int divisions, texture *tex)
         break;
     }
 
-    prepareCelList(ms, false, false);
+    prepareCelList(ms, translucent, twosided);
 
     return ms;
 }

@@ -34,6 +34,7 @@ bool benchTexture;
 bool benchScreens;
 bool fpsOn = true;
 
+static mesh *cubeMeshFlat;
 
 static void quit()
 {
@@ -163,6 +164,17 @@ static void initStuff()
 
 static int startT;
 
+static void cube3D(int ticks)
+{
+    int t = ticks >> 5;
+
+    cubeMeshFlat->posX = 0; cubeMeshFlat->posY = 0; cubeMeshFlat->posZ = 640;
+    cubeMeshFlat->rotX = t; cubeMeshFlat->rotY = t >> 1; cubeMeshFlat->rotZ = t >> 2;
+
+    uploadTransformAndProjectMesh(cubeMeshFlat);
+    renderTransformedGeometry(cubeMeshFlat);
+}
+
 static void demoScript()
 {
     int demoT = getTicks() - startT;
@@ -191,6 +203,8 @@ static void demoScript()
     if (demoT < starsTend) {
         stars0Run(getTicks(), fpals);
     }
+
+    cube3D(demoT);
 
     //18
     //23-24
@@ -228,6 +242,8 @@ static void mainLoop()
         vsync = true;
         stars0Init();
         startMusic();
+
+        cubeMeshFlat = initMesh(MESH_CUBE, 256, 1, getTexture(TEXTURE_FLAT), true, false);
     }
     if (DEBUG_ON) vsync = true;
 
