@@ -10,7 +10,7 @@ void rotateVertices(int rotX, int rotY, int rotZ);
 void translateVertices(int posX, int posY, int posZ);
 void projectVertices(void);
 void uploadTransformAndProjectMesh(mesh *ms);
-void renderTransformedGeometry(mesh *ms);
+void renderTransformedGeometry(mesh *ms, bool cpuCull);
 void fasterMapCel(CCB *c, Point *q);
 
 #endif

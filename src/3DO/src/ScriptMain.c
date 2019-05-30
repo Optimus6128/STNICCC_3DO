@@ -37,8 +37,8 @@ static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static uchar *texBufferFlat[ATARI_PAL_NUM];
-static const int flatTexWidth = 4;  static const int flatTexWidthShr = 2;
-static const int flatTexHeight = 4;  static const int flatTexHeightShr = 2;
+static const int flatTexWidth = 8;  static const int flatTexWidthShr = 3;
+static const int flatTexHeight = 8;  static const int flatTexHeightShr = 3;
 static const int flatTexStride = 8;
 
 static bool mustClearScreen = false;
@@ -280,18 +280,20 @@ void initCCBbuffers()
 void initTest3D()
 {
     animTex = createTexture(ANIM_WIDTH, ANIM_HEIGHT, buffer8, pal16);
+    animTex->width = 32;
+    animTex->height = 32;
     cubeMesh = initMesh(MESH_CUBE, 256, 1, animTex, false, false);
 }
 
 static void test3D(int ticks)
 {
-    int t = ticks >> 5;
+    int t = ticks >> 4;
 
     cubeMesh->posX = 0; cubeMesh->posY = 0; cubeMesh->posZ = 512;
-    cubeMesh->rotX = t; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 2;
+    cubeMesh->rotX = t >> 2; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 3;
 
     uploadTransformAndProjectMesh(cubeMesh);
-    renderTransformedGeometry(cubeMesh);
+    renderTransformedGeometry(cubeMesh, false);
 }
 
 static void addPolygon(int numVertices, int paletteIndex)

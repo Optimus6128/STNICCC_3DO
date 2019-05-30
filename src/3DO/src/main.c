@@ -172,7 +172,7 @@ static void cube3D(int ticks)
     cubeMeshFlat->rotX = t; cubeMeshFlat->rotY = t >> 1; cubeMeshFlat->rotZ = t >> 2;
 
     uploadTransformAndProjectMesh(cubeMeshFlat);
-    renderTransformedGeometry(cubeMeshFlat);
+    renderTransformedGeometry(cubeMeshFlat, true);
 }
 
 static void demoScript()

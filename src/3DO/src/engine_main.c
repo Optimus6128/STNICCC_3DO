@@ -134,7 +134,7 @@ void uploadTransformAndProjectMesh(mesh *ms)
     projectVertices();
 }
 
-void renderTransformedGeometry(mesh *ms)
+void renderTransformedGeometry(mesh *ms, bool cpuCull)
 {
     int i, j;
     int *indices = ms->index;
@@ -150,6 +150,7 @@ void renderTransformedGeometry(mesh *ms)
 		quad[3].pt_X = vertices[indices[i+3]].x; quad[3].pt_Y = vertices[indices[i+3]].y;
 
         n = (quad[0].pt_X - quad[1].pt_X) * (quad[2].pt_Y - quad[1].pt_Y) - (quad[2].pt_X - quad[1].pt_X) * (quad[0].pt_Y - quad[1].pt_Y);
+        if (!cpuCull) n = 1;
         if (n > 0) {
             //fasterMapCel(ms->quad[j].cel, quad);
             MapCel(ms->quad[j].cel, quad);
