@@ -68,6 +68,13 @@ void drawCels(CCB *cels)
     DrawCels(VideoItems[screenPage], cels);
 }
 
+void drawCel(CCB *cel)
+{
+    cel->ccb_Flags |= CCB_LAST;
+    DrawCels(VideoItems[screenPage], cel);
+    cel->ccb_Flags &= ~CCB_LAST;
+}
+
 void fadeToBlack()
 {
     FadeToBlack(&screenContext, FADE_FRAMECOUNT);

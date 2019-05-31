@@ -134,6 +134,7 @@ void uploadTransformAndProjectMesh(mesh *ms)
     projectVertices();
 }
 
+/*
 void renderTransformedGeometry(mesh *ms, bool cpuCull)
 {
     int i, j;
@@ -162,4 +163,36 @@ void renderTransformedGeometry(mesh *ms, bool cpuCull)
     }
 
     drawCels(ms->quad[0].cel);
+}*/
+
+void renderTransformedGeometry(mesh *ms, bool cpuCull)
+{
+    int i, j;
+    int *indices = ms->index;
+	Point quad[4];
+
+    j = 0;
+    for (i=0; i<ms->indexNum; i+=4)
+    {
+        unsigned short *p;
+        int n;
+		quad[0].pt_X = vertices[indices[i]].x; quad[0].pt_Y = vertices[indices[i]].y;
+		quad[1].pt_X = vertices[indices[i+1]].x; quad[1].pt_Y = vertices[indices[i+1]].y;
+		quad[2].pt_X = vertices[indices[i+2]].x; quad[2].pt_Y = vertices[indices[i+2]].y;
+		quad[3].pt_X = vertices[indices[i+3]].x; quad[3].pt_Y = vertices[indices[i+3]].y;
+
+        n = (quad[0].pt_X - quad[1].pt_X) * (quad[2].pt_Y - quad[1].pt_Y) - (quad[2].pt_X - quad[1].pt_X) * (quad[0].pt_Y - quad[1].pt_Y);
+        //if (!cpuCull) n = 1;
+        p = (unsigned short*)ms->quad[j].cel->ccb_PLUTPtr;
+        if (n > 0) {
+            p[31] = 23 << 10;
+        } else {
+            p[31] = 20 << 5;
+        }
+
+        MapCel(ms->quad[j].cel, quad);
+        drawCel(ms->quad[j].cel);
+
+        ++j;
+    }
 }

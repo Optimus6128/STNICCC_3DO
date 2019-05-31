@@ -166,9 +166,9 @@ static int startT;
 
 static void cube3D(int ticks)
 {
-    int t = ticks >> 5;
+    int t = ticks >> 6;
 
-    cubeMeshFlat->posX = 0; cubeMeshFlat->posY = 0; cubeMeshFlat->posZ = 640;
+    cubeMeshFlat->posX = 0; cubeMeshFlat->posY = 0; cubeMeshFlat->posZ = 512;
     cubeMeshFlat->rotX = t; cubeMeshFlat->rotY = t >> 1; cubeMeshFlat->rotZ = t >> 2;
 
     uploadTransformAndProjectMesh(cubeMeshFlat);
