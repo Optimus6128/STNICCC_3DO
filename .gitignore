@@ -1,0 +1,10 @@
+.vs
+Win32
+x64
+LaunchMe
+*.db
+*.iso
+*.o
+*.exe
+src/3DO/demo.iso.fstree
+src/3DO/demo/3DOnewProj.layout

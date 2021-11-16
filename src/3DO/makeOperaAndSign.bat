@@ -1,7 +1,7 @@
 echo off
 cd src
 REM STEP 1 - Compile
-dmake
+make
 
 REM STEP 2 - Create Directory Structure
 copy LaunchMe ..\CD /Y

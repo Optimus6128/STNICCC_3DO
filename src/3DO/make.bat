@@ -1,3 +1,3 @@
 cd src
-dmake
+make
 pause
