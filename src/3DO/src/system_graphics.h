@@ -33,7 +33,7 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 
-#define NUM_SCREEN_PAGES 4
+#define NUM_SCREEN_PAGES 6	// as many as possible to reduce flickering from SPORT clearing when vsync is off for benchmark purposes
 
 void initGraphics(void);
 void displayScreen(void);

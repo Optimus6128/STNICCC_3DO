@@ -604,12 +604,12 @@ void drawTimer()
     stbuffer[5] = ':';
     hackNumToTwoDigitChars(&stbuffer[6], mls);
 
-    drawText(128, 224, stbuffer);
+    drawText(128, 216, stbuffer);
 
     if (endOfBench) {
         setFontColor(MakeRGB15(31, 24, 16));
-        sprintf(avgfpsbuffer, "Avg FPS: %d", avgfps);
-        drawText(216, 224, avgfpsbuffer);
+        sprintf(avgfpsbuffer, "Avg FPS:%d", avgfps);
+        drawText(204, 216, avgfpsbuffer);
         setFontColor(MakeRGB15(31, 31, 31));
     }
 }

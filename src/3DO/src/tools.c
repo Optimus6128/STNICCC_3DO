@@ -153,8 +153,8 @@ int getTicks()
 
 void showFPS()
 {
-    const int posX = 0;
-    const int posY = 0;
+    const int posX = 32;
+    const int posY = 14;
 
     if (getTicks() - atime >= 1000)
     {
