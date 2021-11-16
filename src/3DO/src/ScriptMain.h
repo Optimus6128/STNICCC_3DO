@@ -3,11 +3,6 @@
 
 #include "Types.h"
 
-#define ANIM_WIDTH 256
-#define ANIM_HEIGHT 200
-#define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
-
-
 typedef struct MyPoint2D
 {
     int x, y;
@@ -19,12 +14,18 @@ typedef struct QuadStore
 	int c;
 }QuadStore;
 
-void runAnimationScript(int ticks);
+
+#define FP_BITS 12
+
+#define INT_TO_FIXED(i,b) ((i) << b)
+#define FIXED_TO_INT(x,b) ((x) >> b)
+
+
+void runAnimationScript(void);
 void initCCBpolysFlat(void);
 void initCCBPolysTexture(void);
 void initBenchTextures(bool cyber);
 void initCCBbuffers(void);
 void initDivs(void);
-void initTest3D(void);
 
 #endif

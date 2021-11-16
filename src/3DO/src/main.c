@@ -7,11 +7,6 @@
 #include "ScriptMain.h"
 #include "sound.h"
 
-
-#include "engine_main.h"
-#include "engine_texture.h"
-#include "engine_mesh.h"
-
 #include "fx_stars0.h"
 
 static bool restart = false;
@@ -33,8 +28,6 @@ bool demo;
 bool benchTexture;
 bool benchScreens;
 bool fpsOn = true;
-
-static mesh *cubeMeshFlat;
 
 static void quit()
 {
@@ -155,25 +148,12 @@ static void initStuff()
 	initFonts();
 	initTimer();
 
-	initMathUtil();
-	initTextures();
+    initDivs();
 
     initCCBbuffers();
-    initTest3D();
 }
 
 static int startT;
-
-static void cube3D(int ticks)
-{
-    int t = ticks >> 6;
-
-    cubeMeshFlat->posX = 0; cubeMeshFlat->posY = 0; cubeMeshFlat->posZ = 512;
-    cubeMeshFlat->rotX = t; cubeMeshFlat->rotY = t >> 1; cubeMeshFlat->rotZ = t >> 2;
-
-    uploadTransformAndProjectMesh(cubeMeshFlat);
-    renderTransformedGeometry(cubeMeshFlat, true);
-}
 
 static void demoScript()
 {
@@ -192,19 +172,12 @@ static void demoScript()
     if (demoT >= starsTend - 256) fpals = starsTend - demoT;
     if (demoT < 0) demoT = 0;
 
-
-    if (demoT < starsTend + 256) {
-        clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
-    }
-
     if (demoT >= animTstart)
-        runAnimationScript(demoT);
+        runAnimationScript();
 
     if (demoT < starsTend) {
         stars0Run(getTicks(), fpals);
     }
-
-    cube3D(demoT);
 
     //18
     //23-24
@@ -218,14 +191,10 @@ static void demoScript()
     if (musicStatus >= 35 && musicStatus <=38) {drawZoomedText(192,160, "For 3DO", tz4); if (tz4 <= 512) tz4 += spz; };
 }
 
+
 static void mainLoop()
 {
     menuScreen();
-
-    if (demo)
-        clearAllScreens(0);
-    else
-        clearAllScreens(BG_COLOR);
 
     if (benchTexture) {
         initBenchTextures(true);
@@ -242,11 +211,7 @@ static void mainLoop()
         vsync = true;
         stars0Init();
         startMusic();
-
-        cubeMeshFlat = initMesh(MESH_CUBE, 256, 1, getTexture(TEXTURE_FLAT), true, false);
     }
-    if (DEBUG_ON) vsync = true;
-
 
     startT = getTicks();
 	while(!restart)
@@ -256,7 +221,7 @@ static void mainLoop()
 		if (demo) {
             demoScript();
 		} else {
-            runAnimationScript(startT);
+            runAnimationScript();
 		}
 
         if (!demo && fpsOn) showFPS();

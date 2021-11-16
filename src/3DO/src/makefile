@@ -10,7 +10,7 @@ AS 		= $(ARMDEV)bin/armas
 LD		= $(ARMDEV)bin/armlink
 RM		= $(3DODEV)bin/rm
 MODBIN	= $(3DODEV)bin/modbin
-CCFLAGS = -O2 -Otime -bi -d DEBUG=0 -cpu ARM6 #-S -fs
+CCFLAGS = -O2 -Otime -bi -za1 -d DEBUG=0 -cpu ARM6 #-S -fs
 ASFLAGS =
 INCPATH	= -I$(3DODEV)includes
 LDFLAGS = -reloc -nodebug -remove -ro-base 0x80 

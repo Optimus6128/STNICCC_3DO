@@ -32,11 +32,7 @@
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
-
-#define BG_COLOR 7
-
-#define DEBUG_ON false
-
+#define SCREEN_SIZE_IN_BYTES (SCREEN_WIDTH * SCREEN_HEIGHT * 2)
 
 extern bool PressedAonce;
 extern bool PressedBonce;

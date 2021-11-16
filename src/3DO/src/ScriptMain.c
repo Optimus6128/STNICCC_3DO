@@ -3,17 +3,20 @@
 #include "main.h"
 #include "system_graphics.h"
 #include "tools.h"
-#include "mathutil.h"
 #include "sound.h"
 
-#include "engine_main.h"
-#include "engine_texture.h"
-#include "engine_mesh.h"
-
 #define MAX_POLYS 256
+#define ANIM_WIDTH 256
+#define ANIM_HEIGHT 200
+#define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
+
+#define DIV_TAB_SIZE 4096
+#define DIV_TAB_SHIFT 16
+
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
+static int32 divTab[DIV_TAB_SIZE];
 
 static uint32 block64index = 0;
 
@@ -80,10 +83,17 @@ static CCB *lastQuadCCB;
 
 static bool timeForResults = false;
 
-static mesh *cubeMesh;
-static texture *animTex;
 
-static bool demoFrameUpdated = false;
+void initDivs()
+{
+    int i, ii;
+    for (i=0; i<DIV_TAB_SIZE; ++i) {
+        ii = i - DIV_TAB_SIZE / 2;
+        if (i==0) ++ii;
+
+        divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
+    }
+}
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -108,16 +118,16 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
         const int x0 = p0->x; const int y0 = p0->y;
         const int x1 = p1->x; const int y1 = p1->y;
 
-        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BASE);
+        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
 
-        int xp = INT_TO_FIXED(x0, FP_BASE);
+        int xp = INT_TO_FIXED(x0, FP_BITS);
         int count = y1 - y0;
 
         edgeListToWriteFlat = &edgeListToWriteFlat[y0];
 
         do
         {
-            *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BASE);
+            *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
             xp += dx;
         } while(count-- != 0);
     }
@@ -259,41 +269,13 @@ void initCCBPolysTexture()
 
 void initCCBbuffers()
 {
-    Point q[4];
-    q[0].pt_X = 0; q[0].pt_Y = 0;
-    q[1].pt_X = 319; q[1].pt_Y = 0;
-    q[2].pt_X = 319; q[2].pt_Y = 239;
-    q[3].pt_X = 0; q[3].pt_Y = 239;
-
     bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
     bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
-    //bufferCel8->ccb_XPos = animPosX << 16;
-    //bufferCel8->ccb_YPos = animPosY << 16;
-
-    MapCel(bufferCel8, q);
+    bufferCel8->ccb_XPos = animPosX << 16;
+    bufferCel8->ccb_YPos = animPosY << 16;
 
     bufferCel8->ccb_Flags |= CCB_NOBLK;
-    bufferCel8->ccb_PIXC = 0x1000;
-}
-
-void initTest3D()
-{
-    animTex = createTexture(ANIM_WIDTH, ANIM_HEIGHT, buffer8, pal16);
-    animTex->width = 32;
-    animTex->height = 32;
-    cubeMesh = initMesh(MESH_CUBE, 256, 1, animTex, false, false);
-}
-
-static void test3D(int ticks)
-{
-    int t = ticks >> 4;
-
-    cubeMesh->posX = 0; cubeMesh->posY = 0; cubeMesh->posZ = 512;
-    cubeMesh->rotX = t >> 2; cubeMesh->rotY = t >> 1; cubeMesh->rotZ = t >> 3;
-
-    uploadTransformAndProjectMesh(cubeMesh);
-    renderTransformedGeometry(cubeMesh, false);
 }
 
 static void addPolygon(int numVertices, int paletteIndex)
@@ -352,8 +334,8 @@ static void renderPolygonsFlat(QuadStore *q, CCB *cel, int num)
         const int hdx1 = (ptX1 << 20) >> flatTexWidthShr;
         const int hdy1 = (ptY1 << 20) >> flatTexWidthShr;
 
-        cel->ccb_XPos = p0->x<<16;
-        cel->ccb_YPos = p0->y<<16;
+        cel->ccb_XPos = (p0->x + animPosX)<<16;
+        cel->ccb_YPos = (p0->y + animPosY)<<16;
 
         cel->ccb_HDX = hdx0;
         cel->ccb_HDY = hdy0;
@@ -403,8 +385,8 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
         const int hdx1 = (ptX1 << 20) >> shrWidth;
         const int hdy1 = (ptY1 << 20) >> shrWidth;
 
-        cel->ccb_XPos = p0->x<<16;
-        cel->ccb_YPos = p0->y<<16;
+        cel->ccb_XPos = (p0->x + animPosX)<<16;
+        cel->ccb_YPos = (p0->y + animPosY)<<16;
 
         cel->ccb_HDX = hdx0;
         cel->ccb_HDY = hdy0;
@@ -426,7 +408,7 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
 	lastQuadCCB->ccb_Flags ^= CCB_LAST;
 }
 
-static void renderPolygonsSoftware8(int ticks)
+static void renderPolygonsSoftware8()
 {
     int i;
     static MyPoint2D p[4];
@@ -441,33 +423,14 @@ static void renderPolygonsSoftware8(int ticks)
 	}
 
 	drawCels(bufferCel8);
-    test3D(ticks);
 }
 
 static void renderPolygons()
 {
-    int i;
-
-    // Because hardware screen offset doesn't work yet here, I temporary fix it with this code
-    // I know it works on Doom 3DO, but maybe some more things have to be enabled on the VideoItems
-
-    if (demoFrameUpdated) {
-        for (i=0; i<numQuads; ++i) {
-            quads[i].p0.x += animPosX; quads[i].p0.y += animPosY;
-            quads[i].p1.x += animPosX; quads[i].p1.y += animPosY;
-            quads[i].p2.x += animPosX; quads[i].p2.y += animPosY;
-            quads[i].p3.x += animPosX; quads[i].p3.y += animPosY;
-        }
-    }
-
-    //setScreenClipping(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT);
-
     if (benchKind == 0)
         renderPolygonsFlat(quads, polys[0], numQuads);
     else
         renderPolygonsTextured(quads, polys[0], numQuads);
-
-    //resetScreenClipping();
 }
 
 static void interpretPaletteData()
@@ -608,7 +571,6 @@ static void decodeFrame()
 	else {
 		interpretNonIndexedMode();
 	}
-	demoFrameUpdated = true;
 }
 
 void hackNumToTwoDigitChars(char *buff, int num)    // no time to think of a better way
@@ -635,8 +597,6 @@ void drawTimer()
         mls = (elapsed % 1000) / 10;
         avgfps = (frameNum * 1000) / elapsed;
     }
-
-    clearScreenWithRect(128, 224, 64, 8, BG_COLOR);
 
     hackNumToTwoDigitChars(&stbuffer[0], min);
     stbuffer[2] = ':';
@@ -671,7 +631,6 @@ static void benchTextureControls()
         PressedRonce = false;
     }
     sprintf(texnumbuffer, "%dX%d", texSize[texNum], texSize[texNum]);
-    clearScreenWithRect(0, SCREEN_HEIGHT - 8, 64, 8, BG_COLOR);
     drawText(0, SCREEN_HEIGHT - 8, texnumbuffer);
 }
 
@@ -679,16 +638,10 @@ static void benchFrameEndScreen()
 {
     static int timara = 0;
     int i, j, cy, perOff = 2;
-    const int lineCol = (15 << 5) | 31;
-    const int barCol = (24 << 10) | (20 << 5);
-
-    clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 7 << 5);
 
     cy = 0;
-    clearScreenWithRect(100, 0, 2, SCREEN_HEIGHT, lineCol);
 
     for (j=0; j<NUM_BENCH_FRAMES; ++j) {
-        if (cy!=0) clearScreenWithRect(0, cy-1, SCREEN_WIDTH, 1, lineCol);
         drawText(0, cy+4, "Frame"); drawNumber(48, cy+4, benchFrame[j]);
         drawText(0, cy+4+FONT_HEIGHT, "Polys"); drawNumber(48, cy+4+FONT_HEIGHT, benchFrameStatQuads[j]);
         drawText(0, cy+4+2*FONT_HEIGHT, "Cover"); drawNumber(48, cy+4+2*FONT_HEIGHT, benchFrameStatCoverage[j]);
@@ -696,8 +649,6 @@ static void benchFrameEndScreen()
         drawText(48+perOff*FONT_WIDTH, cy+4+2*FONT_HEIGHT, "%");
 
         for (i=0; i<NUM_BENCH_KINDS; ++i) {
-            int length = (((benchFrameFps[j][i] * (252 - 162)) / maxFrameFps[j]) * timara) >> 6;
-            clearScreenWithRect(162, cy+1, length, 6, barCol);
             drawText(102, cy, benchKindText[i]);
             drawNumber(256, cy, benchFrameFps[j][i]);
             cy+=FONT_HEIGHT;
@@ -722,7 +673,6 @@ static void benchFrameLoop()
         return;
     }
 
-
     if (benchFrame[benchFrameIndex] == frameNum) {
         for (i=0; i<NUM_BENCH_KINDS; ++i) {
             int startTicks = getTicks();
@@ -738,10 +688,7 @@ static void benchFrameLoop()
                 renderPolygons();
             }
 
-            clearAllScreens(0);
             do {
-                if (benchRepeatsNum < NUM_SCREEN_PAGES) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-
                 lastQuadCCB->ccb_Flags |= CCB_LAST;
                 drawCels(polys[0]);
                 lastQuadCCB->ccb_Flags ^= CCB_LAST;
@@ -760,7 +707,6 @@ static void benchFrameLoop()
                     maxFrameFps[benchFrameIndex] = benchFrameFps[benchFrameIndex][i];
                 }
             }
-            demoFrameUpdated = false;   // stupid hack, first frame for flat, animPos are added (I wanted to enable them through hardware but failed and changed where I add them), then disable this
         }
         benchKind = 0;
         initCCBpolysFlat();
@@ -769,7 +715,7 @@ static void benchFrameLoop()
     }
 }
 
-void runAnimationScript(int ticks)
+void runAnimationScript()
 {
     if (timeForResults) {
         benchFrameEndScreen();
@@ -783,20 +729,18 @@ void runAnimationScript(int ticks)
         if (benchTexture) benchTextureControls();
 
         if (demo & (frameNum & 1)) {
-            demoFrameUpdated = false;
+
         } else {
             decodeFrame();
         }
 
         if (benchScreens) benchFrameLoop();
 
-        if (mustClearScreen) clearScreenWithRect(animPosX, animPosY, ANIM_WIDTH, ANIM_HEIGHT, 0);
-
         if (gpuOn) {
             renderPolygons();
         } else {
             if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-            renderPolygonsSoftware8(ticks);
+            renderPolygonsSoftware8();
         }
 
         if (!demo && !benchScreens) drawTimer();

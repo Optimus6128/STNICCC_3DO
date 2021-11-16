@@ -128,25 +128,6 @@ void drawZoomedText(int xtp, int ytp, char *text, int zoom)
 	textCel[i]->ccb_Flags ^= CCB_LAST;
 }
 
-
-static void newLine()
-{
-    charPosX = 0;
-    charPosY = (charPosY + 1) % (SCREEN_HEIGHT >> 3);
-}
-
-static void print(char *text)
-{
-    drawText(charPosX * FONT_WIDTH, charPosY * FONT_HEIGHT, text);
-}
-
-static void printValue(int value)
-{
-    ++charPosX;
-    drawNumber(charPosX * FONT_WIDTH, charPosY * FONT_HEIGHT, value);
-}
-
-
 void resetCharPos()
 {
     charPosX = 0;
@@ -174,8 +155,6 @@ void showFPS()
 {
     const int posX = 0;
     const int posY = 0;
-
-    clearScreenWithRect(posX, posY, 32, 8, BG_COLOR);
 
     if (getTicks() - atime >= 1000)
     {
@@ -251,48 +230,4 @@ void setPal(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1, uint
         g += dg;
         b += db;
     }
-}
-
-void clearCurrentLine()
-{
-    clearScreenWithRect(0, charPosY * FONT_HEIGHT, SCREEN_WIDTH, FONT_HEIGHT, 0);
-}
-
-void printWait(char *text, int ms)
-{
-    int i;
-    int px, py;
-
-    if (!DEBUG_ON) return;
-
-    for (i=0; i<ms; ++i) {
-        if (i < NUM_SCREEN_PAGES) {
-            clearCurrentLine();
-            px = charPosX; py = charPosY;
-            print(text);
-            charPosX = px; charPosY = py;
-        }
-        displayScreen();
-    }
-    newLine();
-}
-
-void printWaitValue(char *text, int value, int ms)
-{
-    int i;
-    int px, py;
-
-    if (!DEBUG_ON) return;
-
-    for (i=0; i<ms; ++i) {
-        if (i < NUM_SCREEN_PAGES) {
-            clearCurrentLine();
-            px = charPosX; py = charPosY;
-            print(text);
-            printValue(value);
-            charPosX = px; charPosY = py;
-        }
-        displayScreen();
-    }
-    newLine();
 }

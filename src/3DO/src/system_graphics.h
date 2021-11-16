@@ -38,11 +38,8 @@
 void initGraphics(void);
 void displayScreen(void);
 void drawCels(CCB *cels);
-void drawCel(CCB *cel);
 
 void fadeToBlack(void);
-void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color);
-void clearAllScreens(ushort color);
 
 ushort *getVideoramAddress(void);
 void setScreenClipping(int posX, int posY, int width, int height);
