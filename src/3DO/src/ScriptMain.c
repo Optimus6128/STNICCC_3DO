@@ -40,8 +40,8 @@ static CCB polysTexture[MAX_POLYS];
 static MyPoint2D vi[256];
 
 static uchar *texBufferFlat[ATARI_PAL_NUM];
-static const int flatTexWidth = 8;  static const int flatTexWidthShr = 3;
-static const int flatTexHeight = 8;  static const int flatTexHeightShr = 3;
+static const int flatTexWidth = 4;  static const int flatTexWidthShr = 2;
+static const int flatTexHeight = 4;  static const int flatTexHeightShr = 2;
 static const int flatTexStride = 8;
 
 static bool mustClearScreen = false;
@@ -223,7 +223,7 @@ void initCCBpolysFlat()
     if (mustBuildFlatTextures) {
         const int flatTextSize = flatTexStride * flatTexHeight;
         for (i=0; i<ATARI_PAL_NUM; ++i) {
-            texBufferFlat[i] = (uchar*)malloc(flatTextSize * sizeof(uchar));  // creating 1x2 texture but with 4 bytes stride
+            texBufferFlat[i] = (uchar*)malloc(flatTextSize * sizeof(uchar));
             memset(texBufferFlat[i], i, flatTextSize);
         }
         mustBuildFlatTextures = false;
@@ -638,10 +638,16 @@ static void benchFrameEndScreen()
 {
     static int timara = 0;
     int i, j, cy, perOff = 2;
+    const int lineCol = (15 << 5) | 31;
+    const int barCol = (24 << 10) | (20 << 5);
+
+    clearScreenWithRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 7 << 5);
 
     cy = 0;
+    clearScreenWithRect(100, 0, 2, SCREEN_HEIGHT, lineCol);
 
     for (j=0; j<NUM_BENCH_FRAMES; ++j) {
+        if (cy!=0) clearScreenWithRect(0, cy-1, SCREEN_WIDTH, 1, lineCol);
         drawText(0, cy+4, "Frame"); drawNumber(48, cy+4, benchFrame[j]);
         drawText(0, cy+4+FONT_HEIGHT, "Polys"); drawNumber(48, cy+4+FONT_HEIGHT, benchFrameStatQuads[j]);
         drawText(0, cy+4+2*FONT_HEIGHT, "Cover"); drawNumber(48, cy+4+2*FONT_HEIGHT, benchFrameStatCoverage[j]);
@@ -649,6 +655,8 @@ static void benchFrameEndScreen()
         drawText(48+perOff*FONT_WIDTH, cy+4+2*FONT_HEIGHT, "%");
 
         for (i=0; i<NUM_BENCH_KINDS; ++i) {
+            int length = (((benchFrameFps[j][i] * (252 - 162)) / maxFrameFps[j]) * timara) >> 6;
+            clearScreenWithRect(162, cy+1, length, 6, barCol);
             drawText(102, cy, benchKindText[i]);
             drawNumber(256, cy, benchFrameFps[j][i]);
             cy+=FONT_HEIGHT;

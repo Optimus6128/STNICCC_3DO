@@ -40,10 +40,10 @@ void displayScreen(void);
 void drawCels(CCB *cels);
 
 void fadeToBlack(void);
+void clearScreenWithRect(int posX, int posY, int width, int height, unsigned int color);
 
 ushort *getVideoramAddress(void);
-void setScreenClipping(int posX, int posY, int width, int height);
-void resetScreenClipping(void);
+
 
 extern bool vsync;
 
