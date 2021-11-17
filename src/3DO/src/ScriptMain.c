@@ -16,7 +16,7 @@
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
-#define NEW_SEMISOFT_METHOD
+//#define NEW_SEMISOFT_METHOD
 
 static int32 divTab[DIV_TAB_SIZE];
 
