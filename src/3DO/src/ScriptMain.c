@@ -213,8 +213,8 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 				const int length = rightEdgeFlat[y++]-xl;
 				CCB *cel = *currentScanlineCel8++;
 
-				cel->ccb_XPos = xl<<16;
-				cel->ccb_YPos = y<<16;
+				cel->ccb_XPos = (xl+animPosX)<<16;
+				cel->ccb_YPos = (y+animPosY)<<16;
 
 				cel->ccb_HDX = length<<20;
 				cel->ccb_PLUTPtr = (void *)(pal16[color]<<16);
