@@ -16,6 +16,8 @@
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
+#define NEW_SEMISOFT_METHOD
+
 static int32 divTab[DIV_TAB_SIZE];
 
 static uint32 block64index = 0;
@@ -58,8 +60,16 @@ static bool endOfBench = false;
 static int startBenchTime;
 static int frameNum = 0;
 
-static CCB *bufferCel8;
-static uchar buffer8[ANIM_SIZE];
+#ifndef NEW_SEMISOFT_METHOD
+	static CCB *bufferCel8;
+	static uchar buffer8[ANIM_SIZE];
+#else
+	#define MAX_SCANLINES 6144
+	static CCB *scanlineCel8[MAX_SCANLINES];
+	static CCB **currentScanlineCel8 = scanlineCel8;
+	//static int scanlinesMaxNum = 0;
+	//static int scanlinesCountNum = 0;
+#endif
 
 #define NUM_BENCH_TEXTURES 4
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
@@ -84,6 +94,7 @@ static CCB *lastQuadCCB;
 static bool timeForResults = false;
 
 
+
 void initDivs()
 {
     int i, ii;
@@ -94,6 +105,7 @@ void initDivs()
         divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
     }
 }
+
 
 static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 {
@@ -125,61 +137,91 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 
         edgeListToWriteFlat = &edgeListToWriteFlat[y0];
 
-        do
-        {
+        do {
             *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
             xp += dx;
-        } while(count-- != 0);
+		} while(--count > 0);
     }
 }
 
-void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
-{
-	const int y0 = p[0].y;
-	const int y1 = p[1].y;
-	const int y2 = p[2].y;
-	const int y3 = p[3].y;
 
-	const int scrWidth = SCREEN_WIDTH;
-	const int scrHeight = SCREEN_HEIGHT;
-
-	int yMin = y0;
-	int yMax = yMin;
-
-	uchar *dst;
-	int y;
-
-
-	if (y1 < yMin) yMin = y1;
-	if (y1 > yMax) yMax = y1;
-	if (y2 < yMin) yMin = y2;
-	if (y2 > yMax) yMax = y2;
-	if (y3 < yMin) yMin = y3;
-	if (y3 > yMax) yMax = y3;
-
-	if (yMin < 0) yMin = 0;
-	if (yMax > scrHeight - 1) yMax = scrHeight - 1;
-
-
-	prepareEdgeListFlat(&p[0], &p[1]);
-	prepareEdgeListFlat(&p[1], &p[2]);
-	prepareEdgeListFlat(&p[2], &p[3]);
-	prepareEdgeListFlat(&p[3], &p[0]);
-
-
-	for (y = yMin; y <= yMax; y++)
+#ifndef NEW_SEMISOFT_METHOD
+	void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 	{
-		int xl = leftEdgeFlat[y];
-		int xr = rightEdgeFlat[y];
+		const int y0 = p[0].y;
+		const int y1 = p[1].y;
+		const int y2 = p[2].y;
+		const int y3 = p[3].y;
 
-		if (xl < 0) xl = 0;
-		if (xr > scrWidth - 1) xr = scrWidth - 1;
+		int yMin = y0;
+		int yMax = yMin;
 
-		if (xl == xr) ++xr;
-        dst = screen + (y << 8) + xl;
-        memset(dst, color, xr-xl);
+		if (y1 < yMin) yMin = y1;
+		if (y1 > yMax) yMax = y1;
+		if (y2 < yMin) yMin = y2;
+		if (y2 > yMax) yMax = y2;
+		if (y3 < yMin) yMin = y3;
+		if (y3 > yMax) yMax = y3;
+
+		prepareEdgeListFlat(&p[0], &p[1]);
+		prepareEdgeListFlat(&p[1], &p[2]);
+		prepareEdgeListFlat(&p[2], &p[3]);
+		prepareEdgeListFlat(&p[3], &p[0]);
+
+		{
+			int y = yMin;
+			uchar *dst = screen + (y << 8);
+			int count = yMax - yMin;
+			do {
+				const int xl = leftEdgeFlat[y];
+				const int length = rightEdgeFlat[y++]-xl;
+
+				memset((void*)(dst + xl), color, length);
+				dst += 256;
+			} while(--count > 0);
+		}
 	}
-}
+#else
+	void drawFlatQuad8(MyPoint2D *p, uchar color)
+	{
+		const int y0 = p[0].y;
+		const int y1 = p[1].y;
+		const int y2 = p[2].y;
+		const int y3 = p[3].y;
+
+		int yMin = y0;
+		int yMax = yMin;
+
+		if (y1 < yMin) yMin = y1;
+		if (y1 > yMax) yMax = y1;
+		if (y2 < yMin) yMin = y2;
+		if (y2 > yMax) yMax = y2;
+		if (y3 < yMin) yMin = y3;
+		if (y3 > yMax) yMax = y3;
+
+		prepareEdgeListFlat(&p[0], &p[1]);
+		prepareEdgeListFlat(&p[1], &p[2]);
+		prepareEdgeListFlat(&p[2], &p[3]);
+		prepareEdgeListFlat(&p[3], &p[0]);
+
+		{
+			int y = yMin;
+			int count = yMax - yMin;
+			//scanlinesCountNum += count;
+			do {
+				const int xl = leftEdgeFlat[y];
+				const int length = rightEdgeFlat[y++]-xl;
+				CCB *cel = *currentScanlineCel8++;
+
+				cel->ccb_XPos = xl<<16;
+				cel->ccb_YPos = y<<16;
+
+				cel->ccb_HDX = length<<20;
+				cel->ccb_PLUTPtr = (void *)(pal16[color]<<16);
+			} while(--count > 0);
+		}
+	}
+#endif
 
 void initBenchTextures(bool cyber)
 {
@@ -269,13 +311,21 @@ void initCCBPolysTexture()
 
 void initCCBbuffers()
 {
-    bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
-    bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
+	#ifndef NEW_SEMISOFT_METHOD
+		bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
+		bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
-    bufferCel8->ccb_XPos = animPosX << 16;
-    bufferCel8->ccb_YPos = animPosY << 16;
+		bufferCel8->ccb_XPos = animPosX << 16;
+		bufferCel8->ccb_YPos = animPosY << 16;
 
-    bufferCel8->ccb_Flags |= CCB_NOBLK;
+		bufferCel8->ccb_Flags |= CCB_NOBLK;
+	#else
+		int i;
+		for (i=0; i<MAX_SCANLINES; ++i) {
+			scanlineCel8[i] = CreateBackdropCel(1, 1, 0, 100);
+			if (i>0) LinkCel(scanlineCel8[i-1], scanlineCel8[i]);
+		}
+	#endif
 }
 
 static void addPolygon(int numVertices, int paletteIndex)
@@ -408,22 +458,50 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
 	lastQuadCCB->ccb_Flags ^= CCB_LAST;
 }
 
-static void renderPolygonsSoftware8()
-{
-    int i;
-    static MyPoint2D p[4];
-    uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
+#ifndef NEW_SEMISOFT_METHOD
+	static void renderPolygonsSoftware8()
+	{
+		int i;
+		static MyPoint2D p[4];
+		uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
 
-	for (i=0; i<numQuads; ++i) {
-		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
-		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
-		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
-		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-        drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
+		for (i=0; i<numQuads; ++i) {
+			p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
+			p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
+			p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
+			p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
+			drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
+		}
+
+		drawCels(bufferCel8);
 	}
+#else
+	static void renderPolygonsSoftware8()
+	{
+		int i;
+		static MyPoint2D p[4];
+		CCB *lastScanlineCel;
 
-	drawCels(bufferCel8);
-}
+		currentScanlineCel8 = scanlineCel8;
+		//scanlinesCountNum = 0;
+
+		for (i=0; i<numQuads; ++i) {
+			p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
+			p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
+			p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
+			p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
+			drawFlatQuad8(&p[0], (uchar)quads[i].c);
+		}
+
+		//if (scanlinesMaxNum < scanlinesCountNum) scanlinesMaxNum = scanlinesCountNum;
+
+		--currentScanlineCel8;
+		lastScanlineCel = *currentScanlineCel8;
+		lastScanlineCel->ccb_Flags |= CCB_LAST;
+		drawCels(*scanlineCel8);
+		lastScanlineCel->ccb_Flags &= ~CCB_LAST;
+	}
+#endif
 
 static void renderPolygons()
 {
@@ -747,8 +825,13 @@ void runAnimationScript()
         if (gpuOn) {
             renderPolygons();
         } else {
-            if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+			#ifndef NEW_SEMISOFT_METHOD
+				if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+			#endif
             renderPolygonsSoftware8();
+			/*#ifdef NEW_SEMISOFT_METHOD
+				drawNumber(16, 192, scanlinesMaxNum);
+			#endif*/
         }
 
         if (!demo && !benchScreens) drawTimer();
