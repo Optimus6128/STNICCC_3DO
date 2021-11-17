@@ -323,7 +323,11 @@ void initCCBbuffers()
 		int i;
 		for (i=0; i<MAX_SCANLINES; ++i) {
 			scanlineCel8[i] = CreateBackdropCel(1, 1, 0, 100);
-			if (i>0) LinkCel(scanlineCel8[i-1], scanlineCel8[i]);
+			if (i>0) {
+				LinkCel(scanlineCel8[i-1], scanlineCel8[i]);
+				scanlineCel8[i]->ccb_Flags &= ~(CCB_LDPRS | CCB_LDPPMP);
+				memcpy(&scanlineCel8[i]->ccb_HDDX, &scanlineCel8[i]->ccb_PRE0, 8);
+			}
 		}
 	#endif
 }
