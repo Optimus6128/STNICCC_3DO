@@ -16,7 +16,6 @@
 #define ATARI_PAL_NUM 16
 #define MAX_POLYGON_PTS 16
 
-//#define NEW_SEMISOFT_METHOD
 
 static int32 divTab[DIV_TAB_SIZE];
 
@@ -60,16 +59,9 @@ static bool endOfBench = false;
 static int startBenchTime;
 static int frameNum = 0;
 
-#ifndef NEW_SEMISOFT_METHOD
-	static CCB *bufferCel8;
-	static uchar buffer8[ANIM_SIZE];
-#else
-	#define MAX_SCANLINES 6144
-	static CCB *scanlineCel8[MAX_SCANLINES];
-	static CCB **currentScanlineCel8 = scanlineCel8;
-	//static int scanlinesMaxNum = 0;
-	//static int scanlinesCountNum = 0;
-#endif
+static CCB *bufferCel8;
+static uchar buffer8[ANIM_SIZE];
+
 
 #define NUM_BENCH_TEXTURES 4
 #define NUM_BENCH_KINDS (1 + NUM_BENCH_TEXTURES)
@@ -145,83 +137,42 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
 }
 
 
-#ifndef NEW_SEMISOFT_METHOD
-	void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+{
+	const int y0 = p[0].y;
+	const int y1 = p[1].y;
+	const int y2 = p[2].y;
+	const int y3 = p[3].y;
+
+	int yMin = y0;
+	int yMax = yMin;
+
+	if (y1 < yMin) yMin = y1;
+	if (y1 > yMax) yMax = y1;
+	if (y2 < yMin) yMin = y2;
+	if (y2 > yMax) yMax = y2;
+	if (y3 < yMin) yMin = y3;
+	if (y3 > yMax) yMax = y3;
+
+	prepareEdgeListFlat(&p[0], &p[1]);
+	prepareEdgeListFlat(&p[1], &p[2]);
+	prepareEdgeListFlat(&p[2], &p[3]);
+	prepareEdgeListFlat(&p[3], &p[0]);
+
 	{
-		const int y0 = p[0].y;
-		const int y1 = p[1].y;
-		const int y2 = p[2].y;
-		const int y3 = p[3].y;
+		int y = yMin;
+		uchar *dst = screen + (y << 8);
+		int count = yMax - yMin;
+		do {
+			const int xl = leftEdgeFlat[y];
+			const int length = rightEdgeFlat[y++]-xl;
 
-		int yMin = y0;
-		int yMax = yMin;
-
-		if (y1 < yMin) yMin = y1;
-		if (y1 > yMax) yMax = y1;
-		if (y2 < yMin) yMin = y2;
-		if (y2 > yMax) yMax = y2;
-		if (y3 < yMin) yMin = y3;
-		if (y3 > yMax) yMax = y3;
-
-		prepareEdgeListFlat(&p[0], &p[1]);
-		prepareEdgeListFlat(&p[1], &p[2]);
-		prepareEdgeListFlat(&p[2], &p[3]);
-		prepareEdgeListFlat(&p[3], &p[0]);
-
-		{
-			int y = yMin;
-			uchar *dst = screen + (y << 8);
-			int count = yMax - yMin;
-			do {
-				const int xl = leftEdgeFlat[y];
-				const int length = rightEdgeFlat[y++]-xl;
-
-				memset((void*)(dst + xl), color, length);
-				dst += 256;
-			} while(--count > 0);
-		}
+			memset((void*)(dst + xl), color, length);
+			dst += 256;
+		} while(--count > 0);
 	}
-#else
-	void drawFlatQuad8(MyPoint2D *p, uchar color)
-	{
-		const int y0 = p[0].y;
-		const int y1 = p[1].y;
-		const int y2 = p[2].y;
-		const int y3 = p[3].y;
+}
 
-		int yMin = y0;
-		int yMax = yMin;
-
-		if (y1 < yMin) yMin = y1;
-		if (y1 > yMax) yMax = y1;
-		if (y2 < yMin) yMin = y2;
-		if (y2 > yMax) yMax = y2;
-		if (y3 < yMin) yMin = y3;
-		if (y3 > yMax) yMax = y3;
-
-		prepareEdgeListFlat(&p[0], &p[1]);
-		prepareEdgeListFlat(&p[1], &p[2]);
-		prepareEdgeListFlat(&p[2], &p[3]);
-		prepareEdgeListFlat(&p[3], &p[0]);
-
-		{
-			int y = yMin;
-			int count = yMax - yMin;
-			//scanlinesCountNum += count;
-			do {
-				const int xl = leftEdgeFlat[y];
-				const int length = rightEdgeFlat[y++]-xl;
-				CCB *cel = *currentScanlineCel8++;
-
-				cel->ccb_XPos = (xl+animPosX)<<16;
-				cel->ccb_YPos = (y+animPosY)<<16;
-
-				cel->ccb_HDX = length<<20;
-				cel->ccb_PLUTPtr = (void *)(pal16[color]<<16);
-			} while(--count > 0);
-		}
-	}
-#endif
 
 void initBenchTextures(bool cyber)
 {
@@ -311,25 +262,13 @@ void initCCBPolysTexture()
 
 void initCCBbuffers()
 {
-	#ifndef NEW_SEMISOFT_METHOD
-		bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
-		bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
+	bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
+	bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
-		bufferCel8->ccb_XPos = animPosX << 16;
-		bufferCel8->ccb_YPos = animPosY << 16;
+	bufferCel8->ccb_XPos = animPosX << 16;
+	bufferCel8->ccb_YPos = animPosY << 16;
 
-		bufferCel8->ccb_Flags |= CCB_NOBLK;
-	#else
-		int i;
-		for (i=0; i<MAX_SCANLINES; ++i) {
-			scanlineCel8[i] = CreateBackdropCel(1, 1, 0, 100);
-			if (i>0) {
-				LinkCel(scanlineCel8[i-1], scanlineCel8[i]);
-				scanlineCel8[i]->ccb_Flags &= ~(CCB_LDPRS | CCB_LDPPMP);
-				memcpy(&scanlineCel8[i]->ccb_HDDX, &scanlineCel8[i]->ccb_PRE0, 8);
-			}
-		}
-	#endif
+	bufferCel8->ccb_Flags |= CCB_NOBLK;
 }
 
 static void addPolygon(int numVertices, int paletteIndex)
@@ -462,50 +401,22 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
 	lastQuadCCB->ccb_Flags ^= CCB_LAST;
 }
 
-#ifndef NEW_SEMISOFT_METHOD
-	static void renderPolygonsSoftware8()
-	{
-		int i;
-		static MyPoint2D p[4];
-		uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
+static void renderPolygonsSoftware8()
+{
+	int i;
+	static MyPoint2D p[4];
+	uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
 
-		for (i=0; i<numQuads; ++i) {
-			p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
-			p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
-			p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
-			p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-			drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
-		}
-
-		drawCels(bufferCel8);
+	for (i=0; i<numQuads; ++i) {
+		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
+		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
+		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
+		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
+		drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
 	}
-#else
-	static void renderPolygonsSoftware8()
-	{
-		int i;
-		static MyPoint2D p[4];
-		CCB *lastScanlineCel;
 
-		currentScanlineCel8 = scanlineCel8;
-		//scanlinesCountNum = 0;
-
-		for (i=0; i<numQuads; ++i) {
-			p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
-			p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
-			p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
-			p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-			drawFlatQuad8(&p[0], (uchar)quads[i].c);
-		}
-
-		//if (scanlinesMaxNum < scanlinesCountNum) scanlinesMaxNum = scanlinesCountNum;
-
-		--currentScanlineCel8;
-		lastScanlineCel = *currentScanlineCel8;
-		lastScanlineCel->ccb_Flags |= CCB_LAST;
-		drawCels(*scanlineCel8);
-		lastScanlineCel->ccb_Flags &= ~CCB_LAST;
-	}
-#endif
+	drawCels(bufferCel8);
+}
 
 static void renderPolygons()
 {
@@ -829,13 +740,9 @@ void runAnimationScript()
         if (gpuOn) {
             renderPolygons();
         } else {
-			#ifndef NEW_SEMISOFT_METHOD
-				if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
-			#endif
+			if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+
             renderPolygonsSoftware8();
-			/*#ifdef NEW_SEMISOFT_METHOD
-				drawNumber(16, 192, scanlinesMaxNum);
-			#endif*/
         }
 
         if (!demo && !benchScreens) drawTimer();
