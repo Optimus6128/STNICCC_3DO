@@ -100,7 +100,7 @@ void initDivs()
     int i, ii;
     for (i=0; i<DIV_TAB_SIZE; ++i) {
         ii = i - DIV_TAB_SIZE / 2;
-        if (i==0) ++ii;
+        if (ii==0) ++ii;
 
         divTab[i] = (1 << DIV_TAB_SHIFT) / ii;
     }
