@@ -8,7 +8,8 @@
 #define MAX_POLYS 256
 #define ANIM_WIDTH 256
 #define ANIM_HEIGHT 200
-#define ANIM_SIZE (ANIM_WIDTH * ANIM_HEIGHT)
+#define ANIM_WIDTH_IN_BYTES (ANIM_WIDTH / 2)
+#define ANIM_SIZE (ANIM_WIDTH_IN_BYTES * ANIM_HEIGHT)
 
 #define DIV_TAB_SIZE 4096
 #define DIV_TAB_SHIFT 16
@@ -59,8 +60,8 @@ static bool endOfBench = false;
 static int startBenchTime;
 static int frameNum = 0;
 
-static CCB *bufferCel8;
-static uchar buffer8[ANIM_SIZE];
+static CCB *bufferCel4;
+static uchar buffer4[ANIM_SIZE];
 
 
 #define NUM_BENCH_TEXTURES 4
@@ -122,22 +123,22 @@ static void prepareEdgeListFlat(MyPoint2D *p0, MyPoint2D *p1)
         const int x0 = p0->x; const int y0 = p0->y;
         const int x1 = p1->x; const int y1 = p1->y;
 
-        const int dx = ((x1 - x0) * divTab[y1 - y0 + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
+        int dy = y1 - y0;
+        const int dx = ((x1 - x0) * divTab[dy + DIV_TAB_SIZE / 2]) >>  (DIV_TAB_SHIFT - FP_BITS);
 
         int xp = INT_TO_FIXED(x0, FP_BITS);
-        int count = y1 - y0;
 
         edgeListToWriteFlat = &edgeListToWriteFlat[y0];
 
         do {
             *edgeListToWriteFlat++ = FIXED_TO_INT(xp, FP_BITS);
             xp += dx;
-		} while(--count > 0);
+		} while(--dy > 0);
     }
 }
 
 
-void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
+void drawFlatQuad4(MyPoint2D *p, uchar color, uchar *screen)
 {
 	const int y0 = p[0].y;
 	const int y1 = p[1].y;
@@ -161,14 +162,36 @@ void drawFlatQuad8(MyPoint2D *p, uchar color, uchar *screen)
 
 	{
 		int y = yMin;
-		uchar *dst = screen + (y << 8);
+		uchar *dst = screen + y * ANIM_WIDTH_IN_BYTES;
+		uchar col8 = (color << 4) | color;
+
 		int count = yMax - yMin;
 		do {
 			const int xl = leftEdgeFlat[y];
-			const int length = rightEdgeFlat[y++]-xl;
+			int length = rightEdgeFlat[y++]-xl+1;
+			uchar *dst8 = dst + (xl>>1);
+			
+			if (xl & 1) {
+				*dst8 = (*dst8 & 0xF0) | color;
+				++dst8;
+				--length;
+			}
+			if (length & 1) {
+				uchar *dst8r = dst8 + (length >> 1);
+				*dst8r = (*dst8r & 0x0F) | (color << 4);
+				--length;
+			}
 
-			memset((void*)(dst + xl), color, length);
-			dst += 256;
+			length >>= 1;
+			if (length < 8) {
+				while(length-- > 0) {
+					*dst8++ = col8;
+				};
+			} else {
+				memset(dst8, col8, length);
+			}
+
+			dst += ANIM_WIDTH_IN_BYTES;
 		} while(--count > 0);
 	}
 }
@@ -262,13 +285,13 @@ void initCCBPolysTexture()
 
 void initCCBbuffers()
 {
-	bufferCel8 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 8, CREATECEL_CODED, buffer8);
-	bufferCel8->ccb_PLUTPtr = (PLUTChunk*)pal16;
+	bufferCel4 = CreateCel(ANIM_WIDTH, ANIM_HEIGHT, 4, CREATECEL_CODED, buffer4);
+	bufferCel4->ccb_PLUTPtr = (PLUTChunk*)pal16;
 
-	bufferCel8->ccb_XPos = animPosX << 16;
-	bufferCel8->ccb_YPos = animPosY << 16;
+	bufferCel4->ccb_XPos = animPosX << 16;
+	bufferCel4->ccb_YPos = animPosY << 16;
 
-	bufferCel8->ccb_Flags |= CCB_NOBLK;
+	bufferCel4->ccb_Flags |= CCB_NOBLK;
 }
 
 static void addPolygon(int numVertices, int paletteIndex)
@@ -401,21 +424,21 @@ static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
 	lastQuadCCB->ccb_Flags ^= CCB_LAST;
 }
 
-static void renderPolygonsSoftware8()
+static void renderPolygonsSoftware4()
 {
 	int i;
 	static MyPoint2D p[4];
-	uchar *screen = (uchar*)bufferCel8->ccb_SourcePtr;
+	uchar *screen = (uchar*)bufferCel4->ccb_SourcePtr;
 
 	for (i=0; i<numQuads; ++i) {
 		p[0].x = quads[i].p0.x; p[0].y = quads[i].p0.y;
 		p[1].x = quads[i].p1.x; p[1].y = quads[i].p1.y;
 		p[2].x = quads[i].p2.x; p[2].y = quads[i].p2.y;
 		p[3].x = quads[i].p3.x; p[3].y = quads[i].p3.y;
-		drawFlatQuad8(&p[0], (uchar)quads[i].c, screen);
+		drawFlatQuad4(&p[0], (uchar)quads[i].c, screen);
 	}
 
-	drawCels(bufferCel8);
+	drawCels(bufferCel4);
 }
 
 static void renderPolygons()
@@ -740,9 +763,9 @@ void runAnimationScript()
         if (gpuOn) {
             renderPolygons();
         } else {
-			if (mustClearScreen) memset(buffer8, 0, ANIM_SIZE);
+			if (mustClearScreen) memset(buffer4, 0, ANIM_SIZE);
 
-            renderPolygonsSoftware8();
+            renderPolygonsSoftware4();
         }
 
         if (!demo && !benchScreens) drawTimer();
