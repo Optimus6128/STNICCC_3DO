@@ -6,12 +6,12 @@ NAME	= LaunchMe
 STACKSIZE = 4096
 
 CC		= $(ARMDEV)bin/armcc
-AS 		= $(ARMDEV)bin/armas
+AS 		= $(ARMDEV)bin/armasm
 LD		= $(ARMDEV)bin/armlink
 RM		= $(3DODEV)bin/rm
 MODBIN	= $(3DODEV)bin/modbin
-CCFLAGS = -O2 -Otime -bi -za1 -d DEBUG=0 -cpu ARM6 #-S -fs
-ASFLAGS =
+CCFLAGS	= -O2 -Otime -bi -za1 -d DEBUG=0 -cpu ARM60 -D BIG_ENDIAN
+ASFLAGS	= -BI
 INCPATH	= -I$(3DODEV)includes
 LDFLAGS = -reloc -nodebug -remove -ro-base 0x80 
 LIBPATH	= $(3DODEV)libs/
