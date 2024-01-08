@@ -78,13 +78,14 @@ fasterMapCelLoop
 
 			SUB		v3,v3,v1			; q1x - q0x
 			SUB		v4,v4,v2			; q1y - q0y
-			MOV		v3,v3,LSL v8		; ccb_HDX = hdx0 = (q1x - q0x) << (20 - shrWidth)
-			MOV		v4,v4,LSL v8		; ccb_HDY = hdy0 = (q1y - q0y) << (20 - shrWidth)
+
+			MOV		v3,v3,LSL #1		; ccb_HDX = hdx0 = (q1x - q0x) << (20 - shrWidth)
+			MOV		v4,v4,LSL #1		; ccb_HDY = hdy0 = (q1y - q0y) << (20 - shrWidth)
 
 			SUB		ip,ip,v5			; q2x - q3x
 			SUB		lr,lr,v6			; q2y - q3y
-			MOV		ip,ip,LSL v8		; hdx1 = (q2x - q3x) << (20 - shrWidth)
-			MOV		lr,lr,LSL v8		; hdy1 = (q2y - q3y) << (20 - shrWidth)
+			MOV		ip,ip,LSL #1		; hdx1 = (q2x - q3x) << (20 - shrWidth)
+			MOV		lr,lr,LSL #1		; hdy1 = (q2y - q3y) << (20 - shrWidth)
 
 			SUB		v5,v5,v1			; q3x - q0x
 			SUB		v6,v6,v2			; q3y - q0y
@@ -94,11 +95,11 @@ fasterMapCelLoop
 
 			SUB		ip,ip,v3			; hdx1 - hdx0
 			SUB		lr,lr,v4			; hdy1 - hdy0
-			MOV		ip,ip,ASR a3		; ccb_HDDX = (hdx1 - hdx0) >> shrHeight
-			MOV		lr,lr,ASR a3		; ccb_HDDY = (hdy1 - hdy0) >> shrHeight
+			MOV		ip,ip,ASR #1		; ccb_HDDX = (hdx1 - hdx0) >> shrHeight
+			MOV		lr,lr,ASR #1		; ccb_HDDY = (hdy1 - hdy0) >> shrHeight
 
-			MOV		v5,v5,LSL v7		; ccb_VDX = (q3x - q0x) << (16 - shrHeight);
-			MOV		v6,v6,LSL v7		; ccb_VDY = (q3y - q0y) << (16 - shrHeight);
+			MOV		v5,v5,LSL #1		; ccb_VDX = (q3x - q0x) << (16 - shrHeight);
+			MOV		v6,v6,LSL #1		; ccb_VDY = (q3y - q0y) << (16 - shrHeight);
 
 			STMIA	a1!,{v1-v6,ip,lr}
 			ADD		a1,a1,#0x24
@@ -110,8 +111,63 @@ fasterMapCelLoop
 
 
 
+
+
+; void fasterMapCelAsmBatch2x2(CCB *c, QuadStore *q, int count, uchar **texBufferFlat)
+
+fasterMapCelAsmBatch2x2
+		STMDB	sp!,{v1-v7,lr}
+
+		ADD		a1,a1,#0x10
+
+fasterMapCelLoop2x2
+
+			LDMIA	a2!,{v1-v4,ip,lr}
+			LDMIA	a2!,{v5-v7}
+			;	v1 = q0x, v2 = q0y
+			;	v3 = q1x, v4 = q1y
+			;	ip = q2x, lr = q2y
+			;	v4 = q3x, v6 = q3y
+			;	v7 = c
+
+			LDR v7,[a4,v7,LSL #2]
+			STR v7,[a1,#-8]
+
+			SUB		v3,v3,v1			; q1x - q0x
+			SUB		v4,v4,v2			; q1y - q0y
+			MOV		v3,v3,LSL #18		; ccb_HDX = hdx0 = (q1x - q0x) << (20 - 2)
+			MOV		v4,v4,LSL #18		; ccb_HDY = hdy0 = (q1y - q0y) << (20 - 2)
+
+			SUB		ip,ip,v5			; q2x - q3x
+			SUB		lr,lr,v6			; q2y - q3y
+			MOV		ip,ip,LSL #18		; hdx1 = (q2x - q3x) << (20 - 2)
+			MOV		lr,lr,LSL #18		; hdy1 = (q2y - q3y) << (20 - 2)
+
+			SUB		v5,v5,v1			; q3x - q0x
+			SUB		v6,v6,v2			; q3y - q0y
+
+			MOV		v1,v1,LSL #16		; ccb_XPos = q0x << 16
+			MOV		v2,v2,LSL #16		; ccb_Ypos = q0y << 16
+
+			SUB		ip,ip,v3			; hdx1 - hdx0
+			SUB		lr,lr,v4			; hdy1 - hdy0
+			MOV		ip,ip,ASR #2		; ccb_HDDX = (hdx1 - hdx0) >> 2
+			MOV		lr,lr,ASR #2		; ccb_HDDY = (hdy1 - hdy0) >> 2
+
+			MOV		v5,v5,LSL #14		; ccb_VDX = (q3x - q0x) << (16 - 2);
+			MOV		v6,v6,LSL #14		; ccb_VDY = (q3y - q0y) << (16 - 2);
+
+			STMIA	a1!,{v1-v6,ip,lr}
+			ADD		a1,a1,#0x24
+
+		SUBS a3,a3,#1
+		BNE fasterMapCelLoop2x2
+
+        LDMIA    sp!,{v1-v7,pc}
+
 		EXPORT fasterMapCelAsm
 		EXPORT fasterMapCelAsmBatch
+		EXPORT fasterMapCelAsmBatch2x2
 
         IMPORT |Lib$$Request$$armlib$$_cn.32b|, WEAK
 

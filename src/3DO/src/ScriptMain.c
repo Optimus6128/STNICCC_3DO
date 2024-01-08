@@ -325,24 +325,11 @@ static void addPolygon(int numVertices, int paletteIndex)
 	}
 }
 
-void fasterMapCelAsm(CCB *c, MyPoint2D *q, unsigned char texShifts);
-void fasterMapCelAsmBatch(CCB *c, QuadStore *q, unsigned char texShifts, int count);
+//void fasterMapCelAsmBatch(CCB *c, QuadStore *q, unsigned char texShifts, int count);
+void fasterMapCelAsmBatch2x2(CCB *c, QuadStore *q, int count, uchar **texBufferFlat);
 
-/*static void prepareQuadCelsFlat(QuadStore *q, CCB *cel, int count)
-{
-	const unsigned char texShifts = (flatTexWidthShr << 4) | flatTexHeightShr;
 
-	while(count-- != 0) {
-		fasterMapCelAsm(cel, q, texShifts);
-
-        cel->ccb_SourcePtr = (CelData*)texBufferFlat[q->c];
-
-        ++q;
-        ++cel;
-	}
-}*/
-
-/*static void prepareQuadCelsFlat(QuadStore *q, CCB *cel, int count)
+static void prepareQuadCelsFlat(QuadStore *q, CCB *cel, int count)
 {
 	while(count-- != 0) {
 		const int q0x = q->p0.x; const int q0y = q->p0.y;
@@ -380,26 +367,14 @@ void fasterMapCelAsmBatch(CCB *c, QuadStore *q, unsigned char texShifts, int cou
         ++q;
         ++cel;
 	}
-}*/
-
-static void setTexHackForNow(QuadStore *q, CCB *cel, int count)
-{
-	while(count-- != 0) {
-		cel->ccb_SourcePtr = (CelData*)texBufferFlat[q->c];
-		++q;
-		++cel;
-	}
 }
 
 static void renderPolygonsFlat(QuadStore *q, CCB *cel, int num)
 {
     if (num > 0) {
-		const unsigned char texShifts = (flatTexWidthShr << 4) | flatTexHeightShr;
-
-		fasterMapCelAsmBatch(cel, q, texShifts, num);
 		//prepareQuadCelsFlat(q, cel, num);
 
-		setTexHackForNow(q, cel, num);
+		fasterMapCelAsmBatch2x2(cel, q, num, texBufferFlat);
 
 		lastQuadCCB = &cel[num-1];
 		lastQuadCCB->ccb_Flags |= CCB_LAST;
