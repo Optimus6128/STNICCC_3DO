@@ -325,52 +325,57 @@ static void addPolygon(int numVertices, int paletteIndex)
 	}
 }
 
-static void renderPolygonsFlat(QuadStore *q, CCB *cel, int num)
+static void prepareQuadCelsFlat(QuadStore *q, CCB *cel, int count)
 {
-    int i;
-    CCB *startingCel = cel;
+	while(count-- != 0) {
+		const int q0x = q->p0.x; const int q0y = q->p0.y;
+		const int q1x = q->p1.x; const int q1y = q->p1.y;
+		const int q2x = q->p2.x; const int q2y = q->p2.y;
+		const int q3x = q->p3.x; const int q3y = q->p3.y;
 
-    if (num==0) return;
+        const int ptX0 = q1x - q0x;
+        const int ptY0 = q1y - q0y;
+        const int ptX1 = q2x - q3x;
+        const int ptY1 = q2y - q3y;
 
-	for (i=0; i<num; ++i) {
-        const MyPoint2D *p0 = &q->p0;
-        const MyPoint2D *p1 = &q->p1;
-        const MyPoint2D *p2 = &q->p2;
-        const MyPoint2D *p3 = &q->p3;
+        const int hdx0 = ptX0 << (20 - flatTexWidthShr);
+        const int hdy0 = ptY0 << (20 - flatTexWidthShr);
+        const int hddx = (ptX1 << (20 - flatTexWidthShr)) - hdx0;
+        const int hddy = (ptY1 << (20 - flatTexWidthShr)) - hdy0;
 
-        const int ptX0 = p1->x - p0->x;
-        const int ptY0 = p1->y - p0->y;
-        const int ptX1 = p2->x - p3->x;
-        const int ptY1 = p2->y - p3->y;
-        const int ptX2 = p3->x - p0->x;
-        const int ptY2 = p3->y - p0->y;
+        const int ptX2 = q3x - q0x;
+        const int ptY2 = q3y - q0y;
 
-        const int hdx0 = (ptX0 << 20) >> flatTexWidthShr;
-        const int hdy0 = (ptY0 << 20) >> flatTexWidthShr;
-        const int hdx1 = (ptX1 << 20) >> flatTexWidthShr;
-        const int hdy1 = (ptY1 << 20) >> flatTexWidthShr;
-
-        cel->ccb_XPos = (p0->x + animPosX)<<16;
-        cel->ccb_YPos = (p0->y + animPosY)<<16;
+        cel->ccb_XPos = (q0x + animPosX) << 16;
+        cel->ccb_YPos = (q0y + animPosY) << 16;
 
         cel->ccb_HDX = hdx0;
         cel->ccb_HDY = hdy0;
-        cel->ccb_VDX = (ptX2 << 16) >> flatTexHeightShr;
-        cel->ccb_VDY = (ptY2 << 16) >> flatTexHeightShr;
 
-        cel->ccb_HDDX = (hdx1 - hdx0) >> flatTexHeightShr;
-        cel->ccb_HDDY = (hdy1 - hdy0) >> flatTexHeightShr;
+        cel->ccb_VDX = ptX2 << (16 - flatTexHeightShr);
+        cel->ccb_VDY = ptY2 << (16 - flatTexHeightShr);
+
+        cel->ccb_HDDX = hddx >> flatTexHeightShr;
+        cel->ccb_HDDY = hddy >> flatTexHeightShr;
 
         cel->ccb_SourcePtr = (CelData*)texBufferFlat[q->c];
 
         ++q;
         ++cel;
 	}
+}
 
-	lastQuadCCB = --cel;
-	lastQuadCCB->ccb_Flags |= CCB_LAST;
-	drawCels(startingCel);
-	lastQuadCCB->ccb_Flags ^= CCB_LAST;
+static void renderPolygonsFlat(QuadStore *q, CCB *cel, int num)
+{
+    if (num > 0) {
+
+		prepareQuadCelsFlat(q, cel, num);
+
+		lastQuadCCB = &cel[num-1];
+		lastQuadCCB->ccb_Flags |= CCB_LAST;
+		drawCels(cel);
+		lastQuadCCB->ccb_Flags ^= CCB_LAST;
+	}
 }
 
 static void renderPolygonsTextured(QuadStore *q, CCB *cel, int num)
